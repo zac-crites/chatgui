@@ -21,23 +21,34 @@ function App() {
   const [frequencyPenalty, setFrequencyPenalty] = useState(0);
   const [presencePenalty, setPresencePenalty] = useState(0);
   
-  const [chats, setChats] = useState([
-    {
-      id: 1,
-      name: 'General',
-      history: [ { role : "system", content: "You are a helpful assistant." } ],
-    },
-    {
-      id: 2,
-      name: 'Sales',
-      history: [ { role : "system", content: "You are a helpful assistant." } ],
-    },
-    {
-      id: 3,
-      name: 'Support',
-      history: [ { role : "system", content: "You are a helpful assistant." } ],
-    },
-  ]);
+  const [chats, setChats] = useState(() => {
+    const savedChats = JSON.parse(localStorage.getItem('chats'));
+    if (savedChats) {
+      return savedChats;
+    } else {
+      return [
+        {
+          id: 1,
+          name: 'General',
+          history: [ { role : "system", content: "You are a helpful assistant." } ],
+        },
+        {
+          id: 2,
+          name: 'Sales',
+          history: [ { role : "system", content: "You are a helpful assistant." } ],
+        },
+        {
+          id: 3,
+          name: 'Support',
+          history: [ { role : "system", content: "You are a helpful assistant." } ],
+        },
+      ];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('chats', JSON.stringify(chats));
+  }, [chats]);
   
   const [selectedChatId, setSelectedChatId] = useState(1);
   const selectedChat = chats.find((chat) => chat.id === selectedChatId) || { history: [] };
