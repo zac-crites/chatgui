@@ -43,7 +43,6 @@ function App() {
   useEffect(() => {
     localStorage.setItem('selectedChatId', selectedChatId);
   }, [selectedChatId]);
-  
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -90,6 +89,8 @@ function App() {
     console.log( selectedChat );
   };
 
+
+
   const handleNewChat = () => {
     const id = uuidv4().toString();
     const newChat = {
@@ -124,8 +125,8 @@ function App() {
   const handleDeleteChat = (chatId) => {
     const newChats = chats.filter((chat) => chat.id !== chatId);
     setChats(newChats);
-    if( !chats.some((chat) => chat.id === selectedChatId) ) {
-      setSelectedChatId( chats.length > 0 ? chats[0].id : "" );
+    if( !newChats.some((chat) => chat.id === selectedChatId) ) {
+      setSelectedChatId( newChats.length > 0 ? newChats[0].id : "" );
     }
   };
 
