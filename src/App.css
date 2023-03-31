@@ -165,6 +165,41 @@ button {
   margin-right: 15px;
   word-wrap: break-word;
   white-space: pre-wrap;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 95%;
+  position: relative;
+}
+
+.message-content {
+  margin-top: 48px;
+  flex-grow: 1;
+}
+
+.message-actions {
+  position: absolute;
+  top: 16;
+  right: 0;
+  opacity: 0.2;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.message-actions > button {
+  margin-right: 16px;
+}
+
+.chat-message:hover .message-actions {
+  opacity: 1;
+}
+
+.chat-message textarea {
+  margin-top: 48px;
+  width : 95%;
+}
+
+.chat-message > div { 
+  width: 100%;
 }
 
 .user {

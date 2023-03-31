@@ -26,7 +26,7 @@ function App() {
     return JSON.parse(localStorage.getItem('chats')) ?? [{
       id: 1,
       name: 'General',
-      history: [ { role : "system", content: "You are a helpful assistant." } ],
+      history: [ { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." } ],
     },];
   });
 
@@ -47,7 +47,7 @@ function App() {
   const handleSubmit = (event) => {
     event.preventDefault();
     
-    const newMessage = { role: "user", content: message };
+    const newMessage = { id: uuidv4().toString(), role: "user", content: message };
     const newHistory = 
       (message && message.trim().length !== 0) 
         ? [...selectedChat.history, newMessage]
@@ -66,11 +66,12 @@ function App() {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      messages: newHistory
+      messages: newHistory.map( (msg) => ({ role: msg.role, content: msg.content }) )
     })
       .then((response) => {
         console.log(response.data)
         const finalHistory = [...newHistory, {
+          id: uuidv4().toString(),
           role: response.data.choices[0].message.role,
           content: response.data.choices[0].message.content,
         }];
@@ -89,14 +90,12 @@ function App() {
     console.log( selectedChat );
   };
 
-
-
   const handleNewChat = () => {
     const id = uuidv4().toString();
     const newChat = {
       id: id,
       name: `Chat ${id.substr(0,4)}`, 
-      history: [ { role : "system", content: "You are a helpful assistant." } ],
+      history: [ { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." } ],
     };
     setChats([...chats, newChat]);
     setSelectedChatId(id);
@@ -109,6 +108,7 @@ function App() {
       reader.onload = (e) => {
         const content = e.target.result;
         const newMessage = {
+          id : uuidv4().toString(),
           role: "user",
           content: content,
         };
@@ -128,6 +128,26 @@ function App() {
     if( !newChats.some((chat) => chat.id === selectedChatId) ) {
       setSelectedChatId( newChats.length > 0 ? newChats[0].id : "" );
     }
+  };
+  
+  const handleEditMessage = (messageId, newContent) => {
+    const newHistory = selectedChat.history.map((message) =>
+      message.id === messageId ? { ...message, content: newContent } : message
+    );
+    const newChats = chats.map((chat) =>
+      chat.id === selectedChatId ? { ...chat, history: newHistory } : chat
+    );
+    setChats(newChats);
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    const newHistory = selectedChat.history.filter(
+      (message) => message.id !== messageId
+    );
+    const newChats = chats.map((chat) =>
+      chat.id === selectedChatId ? { ...chat, history: newHistory } : chat
+    );
+    setChats(newChats);
   };
 
   return (
@@ -154,7 +174,10 @@ function App() {
 
       <div className="chat-container">
 
-        <ChatHistory chatHistory={selectedChat.history} />
+        <ChatHistory
+          chatHistory={selectedChat.history}
+          onMessageEdit={handleEditMessage}
+          onMessageDelete={handleDeleteMessage}/>
 
         <ChatInput
           message={message}
