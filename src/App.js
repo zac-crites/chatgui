@@ -74,28 +74,35 @@ function App() {
 
   return (
     <div className="App">
-      
-      <div className="chat-history" ref={chatHistoryRef}>
-        {chatHistory.map((message, index) => (
-          <div key={index} className={`chat-message ${message.role}`}>
-            {message.content}
+      <div className="chat-container">
+        <div className="chat-history" ref={chatHistoryRef}>
+          {chatHistory.map((message, index) => (
+            <div key={index} className={`chat-message ${message.role}`}>
+              {message.content}
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="input-container">
+            <input
+              className="message-input"
+              type="text"
+              ref={messageRef}
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+            />
+            <button type="submit">Send</button>
           </div>
-        ))}
+        </form>
       </div>
-      
-      <form onSubmit={handleSubmit}>
+
+      <div className="settings-panel">
+        <h2>Settings</h2>
         <label>
+          Max Tokens:
           <input
-            type="text"
-            ref={messageRef}
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-          />
-        </label>
-        <label>
-          Number of tokens:
-          <input
-            type="text"
+            type="number"
             ref={numTokensRef}
             value={numTokens}
             onChange={(event) => setNumTokens(event.target.value)}
@@ -104,7 +111,10 @@ function App() {
         <label>
           Temperature:
           <input
-            type="text"
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
             ref={temperatureRef}
             value={temperature}
             onChange={(event) => setTemperature(event.target.value)}
@@ -113,7 +123,10 @@ function App() {
         <label>
           Top P:
           <input
-            type="text"
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
             ref={topPRef}
             value={topP}
             onChange={(event) => setTopP(event.target.value)}
@@ -122,7 +135,10 @@ function App() {
         <label>
           Frequency Penalty:
           <input
-            type="text"
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
             ref={frequencyPenaltyRef}
             value={frequencyPenalty}
             onChange={(event) => setFrequencyPenalty(event.target.value)}
@@ -131,14 +147,16 @@ function App() {
         <label>
           Presence Penalty:
           <input
-            type="text"
+            type="number"
+            step="0.1"
+            min="0"
+            max="1"
             ref={presencePenaltyRef}
             value={presencePenalty}
             onChange={(event) => setPresencePenalty(event.target.value)}
           />
         </label>
-        <button type="submit">Submit</button>
-      </form>
+      </div>
     </div>
   );
 }
