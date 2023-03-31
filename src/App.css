@@ -23,6 +23,8 @@ form {
 label {
   margin-right: 10px;
   color: #fff;
+  display: inline-block;
+  width: 150px;
 }
 
 .chat-container {
@@ -51,6 +53,7 @@ input {
   font-size: 16px;
   background-color: #2d2d2d;
   color: #fff;
+  width: 150px;
 }
 
 button {
