@@ -20,16 +20,39 @@ function App() {
   const [topP, setTopP] = useState(1);
   const [frequencyPenalty, setFrequencyPenalty] = useState(0);
   const [presencePenalty, setPresencePenalty] = useState(0);
-  const [chatHistory, setChatHistory] = useState([]);
+  
+  const [chats, setChats] = useState([
+    {
+      id: 1,
+      name: 'General',
+      history: [ { role : "system", content: "You are a helpful assistant." } ],
+    },
+    {
+      id: 2,
+      name: 'Sales',
+      history: [ { role : "system", content: "You are a helpful assistant." } ],
+    },
+    {
+      id: 3,
+      name: 'Support',
+      history: [ { role : "system", content: "You are a helpful assistant." } ],
+    },
+  ]);
+  
+  const [selectedChatId, setSelectedChatId] = useState(1);
+  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || { history: [] };
 
   const handleSubmit = (event) => {
     event.preventDefault();
     
-    const currentChat = [...chatHistory,{
+    const newHistory = [...selectedChat.history,{
       role: "user",
       content: message,
     }];
-    setChatHistory(currentChat);
+    const newChats = chats.map((chat) =>
+      chat.id === selectedChatId ? {...chat, history:newHistory} : chat
+    );
+    setChats(newChats);
     setMessage("");
     
     openai.createChatCompletion( {
@@ -39,29 +62,46 @@ function App() {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      messages: [
-        { role : "system", content: "You are a helpful assistant." },
-        ...currentChat
-      ]
+      messages: newHistory
     })
       .then((response) => {
         console.log(response.data)
-        const newMessage = {
+        const finalHistory = [...newHistory, {
           role: response.data.choices[0].message.role,
           content: response.data.choices[0].message.content,
-        };
-        setChatHistory([...currentChat,newMessage]);
+        }];
+        const finalChats = newChats.map((chat) =>
+          chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
+        );
+        setChats(finalChats);
       })
       .catch((error) => {
         console.log(error);
       });
   };
 
+  const handleChatSelect = (chatId) => {
+    setSelectedChatId(chatId);
+    console.log( selectedChat );
+  };
+
   return (
     <div className="App">
+      <div className="chat-list">
+        {chats.map((chat) => (
+          <div
+            key={chat.id}
+            className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}
+            onClick={() => handleChatSelect(chat.id)}
+          >
+            {chat.name}
+          </div>
+        ))}
+      </div>
+
       <div className="chat-container">
 
-        <ChatHistory chatHistory={chatHistory} />
+        <ChatHistory chatHistory={selectedChat.history} />
 
         <ChatInput
           message={message}
