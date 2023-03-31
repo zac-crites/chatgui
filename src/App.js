@@ -3,6 +3,8 @@ import {Configuration, OpenAIApi} from 'openai';
 import React, { useState, useRef, useEffect } from 'react';
 
 import ChatHistory from './ChatHistory';
+import SettingsPanel from './SettingsPanel';
+import ChatInput from './ChatInput';
 
 const config = new Configuration( {  
   apiKey: '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',
@@ -20,38 +22,23 @@ function App() {
   const [presencePenalty, setPresencePenalty] = useState(0);
   const [chatHistory, setChatHistory] = useState([]);
 
-  const messageRef = useRef(null);
-  const numTokensRef = useRef(null);
-  const temperatureRef = useRef(null);
-  const topPRef = useRef(null);
-  const frequencyPenaltyRef = useRef(null);
-  const presencePenaltyRef = useRef(null);
-  const chatHistoryRef = useRef(null);
-
   const handleSubmit = (event) => {
     event.preventDefault();
-    const messageValue = messageRef.current.value;
-    const numTokensValue = parseInt(numTokensRef.current.value);
-    const temperatureValue = parseFloat(temperatureRef.current.value);
-    const topPValue = parseFloat(topPRef.current.value);
-    const frequencyPenaltyValue = parseFloat(frequencyPenaltyRef.current.value);
-    const presencePenaltyValue = parseFloat(presencePenaltyRef.current.value);
-
-    setMessage("");
     
     const currentChat = [...chatHistory,{
       role: "user",
-      content: messageValue,
+      content: message,
     }];
     setChatHistory(currentChat);
+    setMessage("");
     
     openai.createChatCompletion( {
       model: "gpt-3.5-turbo",
-      max_tokens: numTokensValue,      
-      temperature: temperatureValue,
-      top_p: topPValue,
-      frequency_penalty: frequencyPenaltyValue,
-      presence_penalty: presencePenaltyValue,
+      max_tokens: numTokens,      
+      temperature: temperature,
+      top_p: topP,
+      frequency_penalty: frequencyPenalty,
+      presence_penalty: presencePenalty,
       messages: [
         { role : "system", content: "You are a helpful assistant." },
         ...currentChat
@@ -76,80 +63,25 @@ function App() {
 
         <ChatHistory chatHistory={chatHistory} />
 
-        <form onSubmit={handleSubmit}>
-          <div className="input-container">
-            <input
-              className="message-input"
-              type="text"
-              ref={messageRef}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-            />
-            <button type="submit">Send</button>
-          </div>
-        </form>
+        <ChatInput
+          message={message}
+          setMessage={setMessage}
+          handleSubmit={handleSubmit}
+          />
       </div>
 
-      <div className="settings-panel">
-        <h2>Settings</h2>
-        <label>
-          Max Tokens:
-          <input
-            type="number"
-            ref={numTokensRef}
-            value={numTokens}
-            onChange={(event) => setNumTokens(event.target.value)}
-          />
-        </label>
-        <label>
-          Temperature:
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="1"
-            ref={temperatureRef}
-            value={temperature}
-            onChange={(event) => setTemperature(event.target.value)}
-          />
-        </label>
-        <label>
-          Top P:
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="1"
-            ref={topPRef}
-            value={topP}
-            onChange={(event) => setTopP(event.target.value)}
-          />
-        </label>
-        <label>
-          Frequency Penalty:
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="1"
-            ref={frequencyPenaltyRef}
-            value={frequencyPenalty}
-            onChange={(event) => setFrequencyPenalty(event.target.value)}
-          />
-        </label>
-        <label>
-          Presence Penalty:
-          <input
-            type="number"
-            step="0.1"
-            min="0"
-            max="1"
-            ref={presencePenaltyRef}
-            value={presencePenalty}
-            onChange={(event) => setPresencePenalty(event.target.value)}
-          />
-        </label>
-      </div>
+      <SettingsPanel
+        numTokens={numTokens}
+        setNumTokens={setNumTokens}
+        temperature={temperature}
+        setTemperature={setTemperature}
+        topP={topP}
+        setTopP={setTopP}
+        frequencyPenalty={frequencyPenalty}
+        setFrequencyPenalty={setFrequencyPenalty}
+        presencePenalty={presencePenalty}
+        setPresencePenalty={setPresencePenalty}
+        />
     </div>
   );
 }
