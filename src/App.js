@@ -15,7 +15,7 @@ const openai = new OpenAIApi(config);
 
 function App() {
 
-  const [message, setMessage] = useState('How many ounces in a pound?');
+  const [message, setMessage] = useState('');
   const [numTokens, setNumTokens] = useState(256);
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(1);
@@ -48,10 +48,12 @@ function App() {
   const handleSubmit = (event) => {
     event.preventDefault();
     
-    const newHistory = [...selectedChat.history,{
-      role: "user",
-      content: message,
-    }];
+    const newMessage = { role: "user", content: message };
+    const newHistory = 
+      (message && message.trim().length !== 0) 
+        ? [...selectedChat.history, newMessage]
+        : selectedChat.history;
+
     const newChats = chats.map((chat) =>
       chat.id === selectedChatId ? {...chat, history:newHistory} : chat
     );
@@ -99,24 +101,24 @@ function App() {
     setSelectedChatId(id);
   };
 
-  const handleNewChat1 = async () => {
-    const id = uuidv4().toString();
-    const newChat = {
-      id: id,
-      name: `Chat ${id.substr(0, 4)}`,
-      history: [],
-    };
-    try {
-      const file = await fetch('/manifest.json'); // Change the file path to your desired file
-      const text = await file.text();
-      if (text) {
-        newChat.history.push({ role: 'system', content: text });
-      }
-    } catch (error) {
-      console.log(error);
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target.result;
+        const newMessage = {
+          role: "user",
+          content: content,
+        };
+        const newHistory = (content && content.trim().length !== 0) ? [...selectedChat.history, newMessage] : selectedChat.history;
+        const newChats = chats.map((chat) =>
+          chat.id === selectedChatId ? { ...chat, history: newHistory } : chat
+        );
+        setChats(newChats);
+      };
+      reader.readAsText(file);
     }
-    setChats([...chats, newChat]);
-    setSelectedChatId(id);
   };
 
   const handleDeleteChat = (chatId) => {
@@ -157,6 +159,7 @@ function App() {
           message={message}
           setMessage={setMessage}
           handleSubmit={handleSubmit}
+          handleFileSelect={handleFileSelect}
           />
       </div>
 

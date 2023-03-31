@@ -4,7 +4,6 @@ body {
 }
 
 .App {
-  max-width: 1200px;
   margin: 0 auto;
   padding: 40px;
   display: flex;
@@ -97,6 +96,7 @@ label {
   width: 300px;
   padding: 20px;
   border-radius: 5px;
+  margin-left: 10px;
 }
 
 input {
@@ -112,9 +112,21 @@ input {
   width: 150px;
 }
 
+textarea {
+  padding: 10px;
+  margin-right: 10px;
+  margin-bottom: 0;
+  border: none;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+  background-color: #2d2d2d;
+  color: #fff;
+  width: 150px;
+}
+
 button {
   padding: 10px 20px;
-  margin-top: 20px;
   background-color: #0084ff;
   border: none;
   border-radius: 5px;
@@ -128,7 +140,6 @@ button {
   flex-direction: column;
   align-items: flex-start;
   justify-content: top;
-  margin-top: 40px;
   height: 600px;
   overflow-y: auto;
   width: 100%;
@@ -151,8 +162,9 @@ button {
   margin-bottom: 20px;
   border-radius: 5px;
   font-size: 16px;
-  max-width: 80%;
+  margin-right: 15px;
   word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .user {
@@ -179,4 +191,26 @@ button {
 .message-input {
   width: 100%;
   margin-top: 20px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.file-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #0084ff;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.file-button i {
+  color: #0084ff;
 }
