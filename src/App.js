@@ -11,8 +11,8 @@ const openai = new OpenAIApi(config);
 function App() {
 
   const [message, setMessage] = useState('How many ounces in a pound?');
-  const [numTokens, setNumTokens] = useState(50);
-  const [temperature, setTemperature] = useState(0.5);
+  const [numTokens, setNumTokens] = useState(256);
+  const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(1);
   const [frequencyPenalty, setFrequencyPenalty] = useState(0);
   const [presencePenalty, setPresencePenalty] = useState(0);
@@ -85,7 +85,6 @@ function App() {
       
       <form onSubmit={handleSubmit}>
         <label>
-          Message:
           <input
             type="text"
             ref={messageRef}
