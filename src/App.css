@@ -27,7 +27,6 @@ label {
   width: 150px;
 }
 
-
 .chat-list {
   display: flex;
   flex-direction: column;
@@ -35,6 +34,32 @@ label {
   align-items: center;
   width: 200px;
   margin-right: 20px;
+}
+
+.new-chat-button {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  background-color: #0084ff;
+  color: #fff;
+}
+
+.delete-chat-button {
+  padding: 5px;
+  margin-left: 10px;
+  border-radius: 20%;
+  font-size: 16px;
+  cursor: pointer;
+  background-color: #680c0c;
+  color: #fff;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  line-height: 1;
 }
 
 .chat-item {
@@ -45,6 +70,13 @@ label {
   cursor: pointer;
   width: 100%;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-name {
+  flex-grow: 1;
 }
 
 .chat-item.active {

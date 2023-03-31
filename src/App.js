@@ -1,6 +1,7 @@
 import './App.css';
 import {Configuration, OpenAIApi} from 'openai';
 import React, { useState, useRef, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 import ChatHistory from './ChatHistory';
 import SettingsPanel from './SettingsPanel';
@@ -22,36 +23,27 @@ function App() {
   const [presencePenalty, setPresencePenalty] = useState(0);
   
   const [chats, setChats] = useState(() => {
-    const savedChats = JSON.parse(localStorage.getItem('chats'));
-    if (savedChats) {
-      return savedChats;
-    } else {
-      return [
-        {
-          id: 1,
-          name: 'General',
-          history: [ { role : "system", content: "You are a helpful assistant." } ],
-        },
-        {
-          id: 2,
-          name: 'Sales',
-          history: [ { role : "system", content: "You are a helpful assistant." } ],
-        },
-        {
-          id: 3,
-          name: 'Support',
-          history: [ { role : "system", content: "You are a helpful assistant." } ],
-        },
-      ];
-    }
+    return JSON.parse(localStorage.getItem('chats')) ?? [{
+      id: 1,
+      name: 'General',
+      history: [ { role : "system", content: "You are a helpful assistant." } ],
+    },];
   });
+
+  const [selectedChatId, setSelectedChatId] = useState( () => {
+    const data = localStorage.getItem("selectedChatId");
+    return data ? data : uuidv4().toString(); } );
+
+  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || { history: [] };
 
   useEffect(() => {
     localStorage.setItem('chats', JSON.stringify(chats));
   }, [chats]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedChatId', selectedChatId);
+  }, [selectedChatId]);
   
-  const [selectedChatId, setSelectedChatId] = useState(1);
-  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || { history: [] };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -96,18 +88,65 @@ function App() {
     console.log( selectedChat );
   };
 
+  const handleNewChat = () => {
+    const id = uuidv4().toString();
+    const newChat = {
+      id: id,
+      name: `Chat ${id.substr(0,4)}`, 
+      history: [ { role : "system", content: "You are a helpful assistant." } ],
+    };
+    setChats([...chats, newChat]);
+    setSelectedChatId(id);
+  };
+
+  const handleNewChat1 = async () => {
+    const id = uuidv4().toString();
+    const newChat = {
+      id: id,
+      name: `Chat ${id.substr(0, 4)}`,
+      history: [],
+    };
+    try {
+      const file = await fetch('/manifest.json'); // Change the file path to your desired file
+      const text = await file.text();
+      if (text) {
+        newChat.history.push({ role: 'system', content: text });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+    setChats([...chats, newChat]);
+    setSelectedChatId(id);
+  };
+
+  const handleDeleteChat = (chatId) => {
+    const newChats = chats.filter((chat) => chat.id !== chatId);
+    setChats(newChats);
+    if( !chats.some((chat) => chat.id === selectedChatId) ) {
+      setSelectedChatId( chats.length > 0 ? chats[0].id : "" );
+    }
+  };
+
   return (
     <div className="App">
       <div className="chat-list">
+      <div className="new-chat-button" onClick={handleNewChat}>
+        + New Chat
+      </div>
         {chats.map((chat) => (
-          <div
-            key={chat.id}
-            className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}
-            onClick={() => handleChatSelect(chat.id)}
-          >
-            {chat.name}
-          </div>
+        <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}>
+        <div
+          className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
+          onClick={() => handleChatSelect(chat.id)}
+        >
+          {chat.name}
+        </div>
+        <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
+          X
+        </div>
+      </div>
         ))}
+        
       </div>
 
       <div className="chat-container">
