@@ -2,6 +2,8 @@ import './App.css';
 import {Configuration, OpenAIApi} from 'openai';
 import React, { useState, useRef, useEffect } from 'react';
 
+import ChatHistory from './ChatHistory';
+
 const config = new Configuration( {  
   apiKey: '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',
 });
@@ -68,20 +70,11 @@ function App() {
       });
   };
 
-  useEffect(() => {
-    chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
-  }, [chatHistory]);
-
   return (
     <div className="App">
       <div className="chat-container">
-        <div className="chat-history" ref={chatHistoryRef}>
-          {chatHistory.map((message, index) => (
-            <div key={index} className={`chat-message ${message.role}`}>
-              {message.content}
-            </div>
-          ))}
-        </div>
+
+        <ChatHistory chatHistory={chatHistory} />
 
         <form onSubmit={handleSubmit}>
           <div className="input-container">
