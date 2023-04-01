@@ -21,7 +21,7 @@ function App() {
   const [topP, setTopP] = useState(1);
   const [frequencyPenalty, setFrequencyPenalty] = useState(0);
   const [presencePenalty, setPresencePenalty] = useState(0);
-  const [processQueue, setProcessQueue] = useState([]);
+  const [newChatName, setNewChatName] = useState("");
   
   const [chats, setChats] = useState(() => {
     return JSON.parse(localStorage.getItem('chats')) ?? [{
@@ -172,6 +172,14 @@ function App() {
     setChats(newChats);
   };
 
+  const handleChatNameEdit = (chatId, newName) => {
+    const newChats = chats.map((chat) =>
+      chat.id === chatId ? { ...chat, name: newName } : chat
+    );
+    setChats(newChats);
+    setNewChatName("");
+  };
+
   return (
     <div className="App">
       <div className="chat-list">
@@ -183,8 +191,23 @@ function App() {
         <div
           className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
           onClick={() => handleChatSelect(chat.id)}
+          onDoubleClick={() => setNewChatName(chat.name)}
         >
-          {chat.name}
+            {newChatName !== "" && chat.id === selectedChatId ? (
+            <input
+              type="text"
+              value={newChatName}
+              onChange={(e) => setNewChatName(e.target.value)}
+              onBlur={() => handleChatNameEdit(chat.id, newChatName)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleChatNameEdit(chat.id, newChatName);
+                }
+              }}
+            />
+          ) : (
+            chat.name
+          )}
         </div>
         <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
           ✖️

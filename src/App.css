@@ -78,6 +78,12 @@ label {
   flex-grow: 1;
 }
 
+.chat-name > input {
+  width:auto;
+  max-width: 120px;
+  margin: 0;
+}
+
 .chat-item.active {
   background-color: #0084ff;
   color: #fff;
