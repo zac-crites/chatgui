@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
   const [editingMessageId, setEditingMessageId] = useState(null);
@@ -56,7 +57,7 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
                     <button onClick={() => handleEditButtonClick(message.id)}>Edit</button>
                     <button onClick={() => handleDeleteButtonClick(message.id)}>Delete</button>
                 </div>
-                <div className="message-content">{message.content}</div>
+                <div className="message-content"><ReactMarkdown>{message.content}</ReactMarkdown></div>
             </div>
           )}
         </div>
