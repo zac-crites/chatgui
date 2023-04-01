@@ -173,20 +173,26 @@ button {
 }
 
 .message-content {
-  margin-top: 48px;
+  margin-top: 24px;
+  margin-left: 32px;
+  margin-right: 32px;
   flex-grow: 1;
 }
 
 .message-actions {
   position: absolute;
-  top: 16;
+  top: 0;
   right: 0;
+  padding: 8px;
   opacity: 0.2;
   transition: opacity 0.2s ease-in-out;
 }
 
 .message-actions > button {
-  margin-right: 16px;
+  margin-left: 4px;
+  font-size: 8pt;
+  padding: 4px 12px;
+  background-color: #2d2d2d;
 }
 
 .chat-message:hover .message-actions {
@@ -196,10 +202,21 @@ button {
 .chat-message textarea {
   margin-top: 48px;
   width : 95%;
+  min-height: 320px;
 }
 
 .chat-message > div { 
   width: 100%;
+}
+
+.message-role {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 4px 8px;
+  color: #fff;
 }
 
 .user {
@@ -233,6 +250,7 @@ button {
 .hidden-input {
   display: none;
 }
+
 
 .file-button {
   display: flex;
