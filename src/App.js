@@ -21,6 +21,7 @@ function App() {
   const [topP, setTopP] = useState(1);
   const [frequencyPenalty, setFrequencyPenalty] = useState(0);
   const [presencePenalty, setPresencePenalty] = useState(0);
+  const [processQueue, setProcessQueue] = useState([]);
   
   const [chats, setChats] = useState(() => {
     return JSON.parse(localStorage.getItem('chats')) ?? [{
@@ -53,12 +54,13 @@ function App() {
         ? [...selectedChat.history, newMessage]
         : selectedChat.history;
 
-    const newChats = chats.map((chat) =>
+    const chatsWithSubmittedMessage = chats.map((chat) =>
       chat.id === selectedChatId ? {...chat, history:newHistory} : chat
     );
+    let newChats = checkForNewChat( chatsWithSubmittedMessage, newMessage );
     setChats(newChats);
     setMessage("");
-    
+
     openai.createChatCompletion( {
       model: "gpt-3.5-turbo",
       max_tokens: numTokens,      
@@ -70,19 +72,39 @@ function App() {
     })
       .then((response) => {
         console.log(response.data)
-        const finalHistory = [...newHistory, {
+        let responseMessage = {
           id: uuidv4().toString(),
           role: response.data.choices[0].message.role,
           content: response.data.choices[0].message.content,
-        }];
+        };
+        const finalHistory = [...newHistory, responseMessage];
         const finalChats = newChats.map((chat) =>
           chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
         );
-        setChats(finalChats);
+        setChats(checkForNewChat(finalChats,responseMessage));
       })
       .catch((error) => {
         console.log(error);
       });
+  };
+
+  const checkForNewChat = (chats, message) => {
+    const newChatRegex = /```[\s\n]NEWCHAT: (.*)- (.*)```/s;
+    const match = message.content.match(newChatRegex);
+    if ( message.role !== "system" && match ) {
+      message.processed = true;
+      const title = match[1].trim();
+      const prompt = match[2].trim();
+      const newChat = {
+        id: uuidv4().toString(),
+        name: title || `Chat ${uuidv4().toString().substr(0,4)}`, 
+        history: [ { id: uuidv4().toString(), role : "system", content: prompt } ],
+      };
+      setChats([...chats, newChat]);
+      setSelectedChatId(newChat.id);
+      return [...chats, newChat];
+    }
+    return chats;
   };
 
   const handleChatSelect = (chatId) => {
@@ -165,7 +187,7 @@ function App() {
           {chat.name}
         </div>
         <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
-          X
+          ✖️
         </div>
       </div>
         ))}

@@ -50,10 +50,10 @@ label {
 .delete-chat-button {
   padding: 5px;
   margin-left: 10px;
-  border-radius: 20%;
+  border-radius: 50%;
   font-size: 16px;
   cursor: pointer;
-  background-color: #680c0c;
+  background-color: #3d3d3d;
   color: #fff;
   width: 20px;
   height: 20px;

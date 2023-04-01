@@ -44,10 +44,8 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
                 defaultValue={message.content}
                 onKeyDown={(event) => {
                   setLastText( event.target.value + event.key );
-                  if (event.key === 'Enter') {
+                  if (event.key === 'Escape') {
                     handleEditSubmit(message.id, event.target.value);
-                  } else if (event.key === 'Escape') {
-                    handleEditCancel();
                   }
                 }}
               />
