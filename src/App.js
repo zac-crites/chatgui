@@ -71,7 +71,7 @@ function App() {
     const chatsWithSubmittedMessage = chats.map((chat) =>
       chat.id === selectedChatId ? {...chat, history:newHistory} : chat
     );
-    let newChats = checkForNewChat( chatsWithSubmittedMessage, newMessage );
+    let newChats = checkForCommands( chatsWithSubmittedMessage, newMessage );
     setChats(newChats);
     setMessage("");
 
@@ -95,28 +95,50 @@ function App() {
         const finalChats = newChats.map((chat) =>
           chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
         );
-        setChats(checkForNewChat(finalChats,responseMessage));
+        setChats(checkForCommands(finalChats,responseMessage));
       })
       .catch((error) => {
         console.log(error);
       });
   };
 
-  const checkForNewChat = (chats, message) => {
-    const newChatRegex = /```[\s\n]NEWCHAT: (.*)- (.*)```/s;
-    const match = message.content.match(newChatRegex);
-    if ( message.role !== "system" && match ) {
-      message.processed = true;
-      const title = match[1].trim();
-      const prompt = match[2].trim();
-      const newChat = {
-        id: uuidv4().toString(),
-        name: title || `Chat ${uuidv4().toString().substr(0,4)}`, 
-        history: [ { id: uuidv4().toString(), role : "system", content: prompt } ],
-      };
-      setChats([...chats, newChat]);
-      setSelectedChatId(newChat.id);
-      return [...chats, newChat];
+  const addNewChat = (chats,title,message) => {
+    const newChat = {
+      id: uuidv4().toString(),
+      name: title || `Chat ${uuidv4().toString().substr(0,4)}`, 
+      history: [ { id: uuidv4().toString(), role : "system", content: message } ],
+    };
+    setChats([...chats, newChat]);
+    setSelectedChatId(newChat.id);
+    return [...chats, newChat]
+  };
+  
+  const checkForCommands = (chats, message) => {
+    console.log("checking for commands...")
+    if (message.role === "system" )
+      return chats;
+    const regex = /```\s*COMMAND:\s*(\S+)\s*(\nARG:(.*?))```/gs;
+    let match;
+    while ((match = regex.exec(message.content))) {
+      const command = match[1];
+      const args = [];
+    
+      // Match all the argument strings and add them to the args array
+      const argRegex = /ARG:(.*?)(?=\nARG:|$)/gs;
+      let argMatch;
+      while ((argMatch = argRegex.exec(match[2]))) {
+        args.push(argMatch[1].trim());
+      }
+    
+      console.log(`Found command: ${command}`);
+      if (args.length > 0) {
+        console.log(`  Args:`);
+        args.forEach((arg, i) => console.log(`    ${i + 1}: ${arg}`));
+      }
+
+      if ( command === "NEWCHAT" && args.length === 2 ) {
+        return addNewChat(chats, args[0], args[1]);
+      }
     }
     return chats;
   };
@@ -146,7 +168,7 @@ function App() {
         const newMessage = {
           id : uuidv4().toString(),
           role: "user",
-          content: content,
+          content: "```\n" + content + "```",
         };
         const newHistory = (content && content.trim().length !== 0) ? [...selectedChat.history, newMessage] : selectedChat.history;
         const newChats = chats.map((chat) =>
