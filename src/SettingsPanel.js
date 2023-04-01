@@ -10,7 +10,9 @@ function SettingsPanel({
   frequencyPenalty,
   setFrequencyPenalty,
   presencePenalty,
-  setPresencePenalty
+  setPresencePenalty,
+  handleSaveTemplate,
+  handleReset
 }) {
   return (
     <div className="settings-panel">
@@ -67,6 +69,10 @@ function SettingsPanel({
           onChange={(event) => setPresencePenalty(parseFloat(event.target.value))}
         />
       </label>
+
+      
+      <button onClick={handleSaveTemplate}>Save Template</button>
+      <button onClick={handleReset}>Reset</button>
     </div>
   );
 }

@@ -23,25 +23,20 @@ function App() {
   const [presencePenalty, setPresencePenalty] = useState(0);
   const [newChatName, setNewChatName] = useState("");
   const [templateValue, setTemplateValue] = useState("");
-  const [templates, setTemplates] = useState([
+  const [templates, setTemplates] = useState( () => { 
+    return JSON.parse(localStorage.getItem('templates')) ?? [
     {
-      name: "Support",
+      name: "Assistant",
       history: [
-        { id: uuidv4().toString(), role : "system", content: "Welcome to our support chat! How can I help you today?" },
+        { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." },
       ]
     },
-    {
-      name: "Sales",
-      history: [
-        { id: uuidv4().toString(), role : "system", content: "Welcome to our sales chat! How can I assist you with your purchase today?" },
-      ]
-    },
-  ]);
+  ] } );
   
   const [chats, setChats] = useState(() => {
     return JSON.parse(localStorage.getItem('chats')) ?? [{
       id: 1,
-      name: 'General',
+      name: 'Assistant',
       history: [ { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." } ],
     },];
   });
@@ -59,6 +54,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem('selectedChatId', selectedChatId);
   }, [selectedChatId]);
+  
+  useEffect(() => {
+    localStorage.setItem('templates', JSON.stringify(templates));
+  }, [templates]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -131,7 +130,7 @@ function App() {
     const id = uuidv4().toString();
     const newChat = {
       id: id,
-      name: `Chat ${id.substr(0,4)}`, 
+      name: `Assist ${id.substr(0,4)}`, 
       history: [ { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." } ],
     };
     setChats([...chats, newChat]);
@@ -208,6 +207,22 @@ function App() {
     setTemplateValue("");
   };
 
+  const handleSaveTemplate = () => {
+    const newTemplate = {
+      name: selectedChat.name,
+      history: [ selectedChat.history[0] ],
+    };
+    const newTemplates = templates.filter( (t) => t.name !== selectedChat.name )
+    setTemplates([...newTemplates, newTemplate]);
+  };
+
+  const handleReset = () => {
+    const newChats = chats.map((chat) =>
+      chat.id === selectedChatId ? {...chat, history:[ chat.history[0]]} : chat
+    );
+    setChats(newChats);
+  };
+
   return (
     <div className="App">
       <div className="chat-list">
@@ -279,6 +294,8 @@ function App() {
         setFrequencyPenalty={setFrequencyPenalty}
         presencePenalty={presencePenalty}
         setPresencePenalty={setPresencePenalty}
+        handleSaveTemplate={handleSaveTemplate}
+        handleReset={handleReset}
         />
 
     </div>

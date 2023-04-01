@@ -42,8 +42,8 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
               <textarea
                 type="text"
                 defaultValue={message.content}
+                onBlur={(event)=>handleEditSubmit(message.id, event.target.value)}
                 onKeyDown={(event) => {
-                  setLastText( event.target.value + event.key );
                   if (event.key === 'Escape') {
                     handleEditSubmit(message.id, event.target.value);
                   }
