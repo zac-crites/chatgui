@@ -96,6 +96,16 @@ label {
   width: 80%;
 }
 
+.new-chat-from-template {
+  margin: 10px;
+    padding: 8px;
+    border-radius: 5px;
+    background-color: #2d2d2d;
+    color: #fff;
+    border: none;
+    font-size: 16px;
+}
+
 .settings-panel {
   background-color: #2d2d2d;
   color: #fff;

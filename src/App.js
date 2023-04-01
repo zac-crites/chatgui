@@ -16,12 +16,27 @@ const openai = new OpenAIApi(config);
 function App() {
 
   const [message, setMessage] = useState('');
-  const [numTokens, setNumTokens] = useState(256);
+  const [numTokens, setNumTokens] = useState(1024);
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(1);
   const [frequencyPenalty, setFrequencyPenalty] = useState(0);
   const [presencePenalty, setPresencePenalty] = useState(0);
   const [newChatName, setNewChatName] = useState("");
+  const [templateValue, setTemplateValue] = useState("");
+  const [templates, setTemplates] = useState([
+    {
+      name: "Support",
+      history: [
+        { id: uuidv4().toString(), role : "system", content: "Welcome to our support chat! How can I help you today?" },
+      ]
+    },
+    {
+      name: "Sales",
+      history: [
+        { id: uuidv4().toString(), role : "system", content: "Welcome to our sales chat! How can I assist you with your purchase today?" },
+      ]
+    },
+  ]);
   
   const [chats, setChats] = useState(() => {
     return JSON.parse(localStorage.getItem('chats')) ?? [{
@@ -180,6 +195,19 @@ function App() {
     setNewChatName("");
   };
 
+  const handleNewChatFromTemplate = (template) => {
+    if(!template) return;
+    const id = uuidv4().toString();
+    const newChat = {
+      id: id,
+      name: template.name, 
+      history: template.history.map((msg) => ({...msg, id: uuidv4().toString()})),
+    };
+    setChats([...chats, newChat]);
+    setSelectedChatId(id);
+    setTemplateValue("");
+  };
+
   return (
     <div className="App">
       <div className="chat-list">
@@ -215,6 +243,14 @@ function App() {
       </div>
         ))}
         
+        <div className="new-chat-from-template">
+          <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value],setTemplateValue)}>
+            <option value="">New Chat from Template</option>
+            {templates.map((template, index) => (
+              <option key={index} value={index}>{template.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="chat-container">
@@ -244,6 +280,7 @@ function App() {
         presencePenalty={presencePenalty}
         setPresencePenalty={setPresencePenalty}
         />
+
     </div>
   );
 }
