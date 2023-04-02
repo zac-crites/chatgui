@@ -1,5 +1,5 @@
 import './App.css';
-import {Configuration, OpenAIApi} from 'openai';
+import { Configuration, OpenAIApi } from 'openai';
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,10 +7,7 @@ import ChatHistory from './ChatHistory';
 import SettingsPanel from './SettingsPanel';
 import ChatInput from './ChatInput';
 
-const config = new Configuration( {  
-  apiKey: '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',
-});
-
+const config = new Configuration( { apiKey: localStorage.getItem("apiKey") });
 const openai = new OpenAIApi(config);
 
 function App() {
@@ -24,6 +21,7 @@ function App() {
   const [newChatName, setNewChatName] = useState("");
   const [templateValue, setTemplateValue] = useState("");
   const [appendTemplateValue, setAppendTemplateValue] = useState("");
+
   const [templates, setTemplates] = useState( () => { 
     return JSON.parse(localStorage.getItem('templates')) ?? [
     {
@@ -61,7 +59,7 @@ function App() {
   }, [templates]);
   
   const getHistory = (chats, id) => {
-    var chat = chats.find( (chat) => chat.id === selectedChatId );
+    var chat = chats.find( (chat) => chat.id === id );
     return chat ? chat.history : [];
   };
 
