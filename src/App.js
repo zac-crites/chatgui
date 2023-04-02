@@ -2,12 +2,13 @@ import './App.css';
 import { Configuration, OpenAIApi } from 'openai';
 import React, { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import * as Utils from './ChatUtils';
 
 import ChatHistory from './ChatHistory';
 import SettingsPanel from './SettingsPanel';
 import ChatInput from './ChatInput';
 
-const config = new Configuration( { apiKey: localStorage.getItem("apiKey") });
+const config = new Configuration({ apiKey: localStorage.getItem("apiKey") });
 const openai = new OpenAIApi(config);
 
 function App() {
@@ -22,27 +23,17 @@ function App() {
   const [templateValue, setTemplateValue] = useState("");
   const [appendTemplateValue, setAppendTemplateValue] = useState("");
 
-  const [templates, setTemplates] = useState( () => { 
-    return JSON.parse(localStorage.getItem('templates')) ?? [
-    {
-      name: "Assistant",
-      history: [
-        { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." },
-      ]
-    },
-  ] } );
-  
-  const [chats, setChats] = useState(() => {
-    return JSON.parse(localStorage.getItem('chats')) ?? [{
-      id: 1,
-      name: 'Assistant',
-      history: [ { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." } ],
-    },];
-  });
+  const [templates, setTemplates] = useState(() =>
+    JSON.parse(localStorage.getItem('templates')) ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
+  );
 
-  const [selectedChatId, setSelectedChatId] = useState( () => {
-    const data = localStorage.getItem("selectedChatId");
-    return data ? data : uuidv4().toString(); } );
+  const [chats, setChats] = useState(() =>
+    JSON.parse(localStorage.getItem('chats')) ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
+  );
+
+  const [selectedChatId, setSelectedChatId] = useState(() =>
+    localStorage.getItem("selectedChatId") ?? uuidv4().toString()
+  );
 
   const selectedChat = chats.find((chat) => chat.id === selectedChatId) || { history: [] };
 
@@ -53,149 +44,51 @@ function App() {
   useEffect(() => {
     localStorage.setItem('selectedChatId', selectedChatId);
   }, [selectedChatId]);
-  
+
   useEffect(() => {
     localStorage.setItem('templates', JSON.stringify(templates));
   }, [templates]);
-  
-  const getHistory = (chats, id) => {
-    var chat = chats.find( (chat) => chat.id === id );
-    return chat ? chat.history : [];
+
+  const commitUserMessage = (chats) => {
+    return (message && message.trim().length !== 0)
+      ? Utils.pushMessage(chats, selectedChatId, Utils.message("user", message))
+      : chats;
   };
 
-  const pushMessage = (chats, message) => {
-    chats = chats.map((chat) =>
-      chat.id === selectedChatId ?  {...chat, history: [...chat.history, message ] } : chat
-    );
-    chats = checkForCommands( chats, message );
-    setChats(chats);
-    return chats;
-  };
-
-  const commitUserMessage = (event) => {
+  const handleCommit = (event) => {
     event.preventDefault();
-    
-    if ( !message || message.trim().length === 0) 
-      return;
-      
-    const newChats = pushMessage( chats, { id: uuidv4().toString(), role: "user", content: message } );
-    setChats(newChats);
+    setChats(commitUserMessage(chats));
     setMessage("");
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    
-    const newMessage = { id: uuidv4().toString(), role: "user", content: message };
-    const newChats =
-      (message && message.trim().length !== 0)
-      ? pushMessage( chats, newMessage ) : chats;
 
-    const newChatWithSpinner = pushMessage( newChats, { id: uuidv4().toString(), role: "INFO", content: "Waiting for assistant..." });
+    const newChats = commitUserMessage(chats);
+    const newChatWithSpinner = Utils.pushMessage(newChats, selectedChatId, Utils.message("INFO", "Waiting for assistant..."));
     setChats(newChatWithSpinner);
     setMessage("");
 
-    try
-    {
-      const response = await openai.createChatCompletion( {
+    try {
+      const response = await openai.createChatCompletion({
         model: "gpt-3.5-turbo",
-        max_tokens: numTokens,      
+        max_tokens: numTokens,
         temperature: temperature,
         top_p: topP,
         frequency_penalty: frequencyPenalty,
         presence_penalty: presencePenalty,
-        messages: (getHistory(newChats, selectedChatId)).map( (msg) => ({ role: msg.role, content: msg.content }) )
+        messages: (Utils.getChat(newChats, selectedChatId).history).map((msg) => ({ role: msg.role, content: msg.content }))
       });
-
       console.log(response.data)
-      let responseMessage = {
-        id: uuidv4().toString(),
-        role: response.data.choices[0].message.role,
-        content: response.data.choices[0].message.content,
-      };
-      const finalHistory = [...newChats.find((chat) => chat.id === selectedChatId).history, responseMessage];
-      const finalChats = newChats.map((chat) =>
-        chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
-      );
-      const result = checkForCommands(finalChats,responseMessage);
-      setChats(result);
+      setChats(Utils.pushMessage(newChats, selectedChatId, Utils.message(
+        response.data.choices[0].message.role,
+        response.data.choices[0].message.content,
+      )));
     }
-    catch ( error ) 
-    {
-      console.log( error );
-      setChats( pushMessage( newChats, { id: uuidv4().toString(), role: "INFO", content: "ERROR" }) );
+    catch (error) {
+      console.log(error);
+      setChats(Utils.pushMessage(newChats, selectedChatId, { id: uuidv4().toString(), role: "INFO", content: "ERROR" }));
     }
-  };
-
-  const addNewChat = (chats,title,message) => {
-    const newChat = {
-      id: uuidv4().toString(),
-      name: title || `Chat ${uuidv4().toString().substr(0,4)}`, 
-      history: [ { id: uuidv4().toString(), role : "system", content: message } ],
-    };
-    setChats([...chats, newChat]);
-    setSelectedChatId(newChat.id);
-    return [...chats, newChat]
-  };
-  
-  const loadMemory = (chats, key) => {
-    const mem = localStorage.getItem( "memory-"+ key.toLowerCase() );
-    return pushMessage( chats, { id: uuidv4().toString(), role : "system", content: "`" + key + ":`\n" + mem } );
-  };
-
-  const doRoll = (chats, roll = 20) => {
-      return pushMessage( chats, { id: uuidv4().toString(), role : "system", content: "`Random number 1-" + roll + ": `\n" + ( 1 + Math.floor( Math.random() * roll ) ) } );
-  }
-
-  const checkForCommands = (chats, message) => {
-    if (message.role === "system" )
-      return chats;
-
-    const cmd = message.content.split( " " );
-    if( cmd.length > 1 && cmd[0] === "/load" )
-    {
-      chats = cmd.slice(1).reduce( 
-        (chats, arg) => loadMemory( chats, arg ),
-        chats );
-    }
-    else if( cmd.length > 0 && cmd[0] === "/roll" )
-    {
-      chats = doRoll( chats, cmd[1] );
-    }
-
-    const regex = /```\s*COMMAND:\s*(\S+)\s*(\nARG:(.*?))```/gs;
-    let match;
-    while ((match = regex.exec(message.content))) {
-      const command = match[1];
-      const args = [];
-    
-      // Match all the argument strings and add them to the args array
-      const argRegex = /ARG:(.*?)(?=\nARG:|$)/gs;
-      let argMatch;
-      while ((argMatch = argRegex.exec(match[2]))) {
-        args.push(argMatch[1].trim());
-      }
-    
-      console.log(`Found command: ${command}`);
-      if (args.length > 0) {
-        console.log(`  Args:`);
-        args.forEach((arg, i) => console.log(`    ${i + 1}: ${arg}`));
-      }
-
-      if ( command === "NEWCHAT" && args.length === 2 ) {
-        chats = addNewChat(chats, args[0], args[1]);
-      }
-      else if ( command === "SAVE" && args.length === 2 ) {
-        localStorage.setItem( "memory-"+ args[0].toLowerCase(), args[1] );
-      }
-      else if ( command === "LOAD" && args.length === 1 ) {
-        chats = loadMemory( chats, args[0] );
-      }
-      else if ( command === "ROLL" && args.length === 1 ) {
-        chats = doRoll( chats, args[0] ) 
-      }
-    }
-    return chats;
   };
 
   const handleChatSelect = (chatId) => {
@@ -203,14 +96,9 @@ function App() {
   };
 
   const handleNewChat = () => {
-    const id = uuidv4().toString();
-    const newChat = {
-      id: id,
-      name: `Assist ${id.substr(0,4)}`, 
-      history: [ { id: uuidv4().toString(), role : "system", content: "You are a helpful assistant." } ],
-    };
-    setChats([...chats, newChat]);
-    setSelectedChatId(id);
+    const newChats = Utils.addNewChat(chats, "Assistant", "You are a helpful assistant.");
+    setChats(newChats);
+    setSelectedChatId(newChats[newChats.length - 1].id);
   };
 
   const handleFileSelect = (event) => {
@@ -218,16 +106,7 @@ function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const content = e.target.result;
-        const newMessage = {
-          id : uuidv4().toString(),
-          role: "user",
-          content: "```\n" + content + "```",
-        };
-        const newHistory = (content && content.trim().length !== 0) ? [...selectedChat.history, newMessage] : selectedChat.history;
-        const newChats = chats.map((chat) =>
-          chat.id === selectedChatId ? { ...chat, history: newHistory } : chat
-        );
+        const newChats = Utils.pushMessage(chats, selectedChatId, Utils.message("user", "```\n" + e.target.result + "```"));
         setChats(newChats);
       };
       reader.readAsText(file);
@@ -237,60 +116,39 @@ function App() {
   const handleDeleteChat = (chatId) => {
     const newChats = chats.filter((chat) => chat.id !== chatId);
     setChats(newChats);
-    if( !newChats.some((chat) => chat.id === selectedChatId) ) {
-      setSelectedChatId( newChats.length > 0 ? newChats[0].id : "" );
+    if (!newChats.some((chat) => chat.id === selectedChatId)) {
+      setSelectedChatId(newChats.length > 0 ? newChats[0].id : "");
     }
   };
-  
+
   const handleEditMessage = (messageId, newContent) => {
-    const newHistory = selectedChat.history.map((message) =>
-      message.id === messageId ? { ...message, content: newContent } : message
-    );
-    const newChats = chats.map((chat) =>
-      chat.id === selectedChatId ? { ...chat, history: newHistory } : chat
-    );
-    setChats(newChats);
+    setChats(
+      Utils.replaceHistory(
+        chats,
+        selectedChatId,
+        selectedChat.history.map((message) => message.id === messageId ? { ...message, content: newContent } : message)));
   };
 
   const handleDeleteMessage = (messageId) => {
-    const newHistory = selectedChat.history.filter(
-      (message) => message.id !== messageId
-    );
-    const newChats = chats.map((chat) =>
-      chat.id === selectedChatId ? { ...chat, history: newHistory } : chat
-    );
-    setChats(newChats);
+    setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.history.filter((message) => message.id !== messageId)));
   };
 
   const handleChatNameEdit = (chatId, newName) => {
-    const newChats = chats.map((chat) =>
-      chat.id === chatId ? { ...chat, name: newName } : chat
-    );
-    setChats(newChats);
+    setChats(Utils.updateChat(chats, chatId, (c) => ({ ...c, name: newName })));
     setNewChatName("");
   };
 
   const handleNewChatFromTemplate = (template) => {
-    if(!template) return;
-    const id = uuidv4().toString();
-    const newChat = {
-      id: id,
-      name: template.name, 
-      history: template.history.map((msg) => ({...msg, id: uuidv4().toString()})),
-    };
-    setChats([...chats, newChat]);
-    setSelectedChatId(id);
+    if (!template) return;
+    const newChats = Utils.newFromTemplate(chats, template);
+    setChats(newChats);
+    setSelectedChatId(newChats[newChats.length - 1].id);
     setTemplateValue("");
   };
-  
-  const handleAppendTemplate = (template) => {
-    if(!template) return;
 
-    const templateHistory = template.history.map((msg) => ({...msg, id: uuidv4().toString()}))
-    const chatsWithSubmittedMessage = chats.map((chat) =>
-      chat.id === selectedChatId ? {...chat, history: [...chat.history, ...templateHistory] } : chat
-    );
-    setChats(chatsWithSubmittedMessage);
+  const handleAppendTemplate = (template) => {
+    if (!template) return;
+    setChats(Utils.appendTemplate(chats, selectedChatId, template));
     setTemplateValue("");
   };
 
@@ -299,89 +157,84 @@ function App() {
       name: selectedChat.name,
       history: selectedChat.history,
     };
-    const newTemplates = templates.filter( (t) => t.name !== selectedChat.name )
+    const newTemplates = templates.filter((t) => t.name !== selectedChat.name)
     setTemplates([...newTemplates, newTemplate]);
   };
 
   const handleReset = () => {
-    const newChats = chats.map((chat) =>
-      chat.id === selectedChatId ? {...chat, history:[ chat.history[0]]} : chat
-    );
-    setChats(newChats);
+    setChats(Utils.replaceHistory(chats, selectedChatId, []));
   };
 
   return (
     <div className="App">
       <div>
 
-      <div className="chat-list">
-      <div className="new-chat-button" onClick={handleNewChat}>
-        + New Chat
-      </div>
-        {chats.map((chat) => (
-        <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}>
-        <div
-          className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
-          onClick={() => handleChatSelect(chat.id)}
-          onDoubleClick={() => setNewChatName(chat.name)}
-        >
-            {newChatName !== "" && chat.id === selectedChatId ? (
-            <input
-              type="text"
-              value={newChatName}
-              onChange={(e) => setNewChatName(e.target.value)}
-              onBlur={() => handleChatNameEdit(chat.id, newChatName)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleChatNameEdit(chat.id, newChatName);
-                }
-              }}
-            />
-          ) : (
-            chat.name
-          )}
-        </div>
-        <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
-          ✖️
-        </div>
-      </div>
-        ))}
-        
-        <div className="new-chat-from-template">
-          <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value],setTemplateValue)}>
-            <option value="">New Chat from Template</option>
-            {templates.map((template, index) => (
-              <option key={index} value={index}>{template.name}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="new-chat-from-template">
-          <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value],setAppendTemplateValue)}>
-            <option value="">Append Template</option>
-            {templates.map((template, index) => (
-              <option key={index} value={index}>{template.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-      </div>
+        <div className="chat-list">
+          <div className="new-chat-button" onClick={handleNewChat}>
+            + New Chat
+          </div>
+          {chats.map((chat) => (
+            <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}>
+              <div
+                className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
+                onClick={() => handleChatSelect(chat.id)}
+                onDoubleClick={() => setNewChatName(chat.name)}
+              >
+                {newChatName !== "" && chat.id === selectedChatId ? (
+                  <input
+                    type="text"
+                    value={newChatName}
+                    onChange={(e) => setNewChatName(e.target.value)}
+                    onBlur={() => handleChatNameEdit(chat.id, newChatName)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleChatNameEdit(chat.id, newChatName);
+                      }
+                    }}
+                  />
+                ) : (
+                  chat.name
+                )}
+              </div>
+              <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
+                ✖️
+              </div>
+            </div>
+          ))}
 
+          <div className="new-chat-from-template">
+            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value], setTemplateValue)}>
+              <option value="">New Chat from Template</option>
+              {templates.map((template, index) => (
+                <option key={index} value={index}>{template.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="new-chat-from-template">
+            <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value], setAppendTemplateValue)}>
+              <option value="">Append Template</option>
+              {templates.map((template, index) => (
+                <option key={index} value={index}>{template.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
 
       <div className="chat-container">
-
         <ChatHistory
           chatHistory={selectedChat.history}
           onMessageEdit={handleEditMessage}
-          onMessageDelete={handleDeleteMessage}/>
+          onMessageDelete={handleDeleteMessage} />
 
         <ChatInput
           message={message}
           setMessage={setMessage}
-          handleCommit={commitUserMessage}
+          handleCommit={handleCommit}
           handleSubmit={handleSubmit}
           handleFileSelect={handleFileSelect}
-          />
+        />
       </div>
 
       <SettingsPanel
@@ -397,7 +250,7 @@ function App() {
         setPresencePenalty={setPresencePenalty}
         handleSaveTemplate={handleSaveTemplate}
         handleReset={handleReset}
-        />
+      />
 
     </div>
   );
