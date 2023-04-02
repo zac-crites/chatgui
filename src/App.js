@@ -85,7 +85,7 @@ function App() {
     setMessage("");
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     
     const newMessage = { id: uuidv4().toString(), role: "user", content: message };
@@ -93,36 +93,40 @@ function App() {
       (message && message.trim().length !== 0)
       ? pushMessage( chats, newMessage ) : chats;
 
-    const newChatWithSpinner = pushMessage( newChats, { id: uuidv4().toString(), role: "system", content: "Waiting for assistant..." });
+    const newChatWithSpinner = pushMessage( newChats, { id: uuidv4().toString(), role: "INFO", content: "Waiting for assistant..." });
     setChats(newChatWithSpinner);
     setMessage("");
 
-    openai.createChatCompletion( {
-      model: "gpt-3.5-turbo",
-      max_tokens: numTokens,      
-      temperature: temperature,
-      top_p: topP,
-      frequency_penalty: frequencyPenalty,
-      presence_penalty: presencePenalty,
-      messages: (getHistory(newChats, selectedChatId)).map( (msg) => ({ role: msg.role, content: msg.content }) )
-    })
-      .then((response) => {
-        console.log(response.data)
-        let responseMessage = {
-          id: uuidv4().toString(),
-          role: response.data.choices[0].message.role,
-          content: response.data.choices[0].message.content,
-        };
-        const finalHistory = [...newChats.find((chat) => chat.id === selectedChatId).history, responseMessage];
-        const finalChats = newChats.map((chat) =>
-          chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
-        );
-        const result = checkForCommands(finalChats,responseMessage);
-        setChats(result);
-      })
-      .catch((error) => {
-        console.log(error);
+    try
+    {
+      const response = await openai.createChatCompletion( {
+        model: "gpt-3.5-turbo",
+        max_tokens: numTokens,      
+        temperature: temperature,
+        top_p: topP,
+        frequency_penalty: frequencyPenalty,
+        presence_penalty: presencePenalty,
+        messages: (getHistory(newChats, selectedChatId)).map( (msg) => ({ role: msg.role, content: msg.content }) )
       });
+
+      console.log(response.data)
+      let responseMessage = {
+        id: uuidv4().toString(),
+        role: response.data.choices[0].message.role,
+        content: response.data.choices[0].message.content,
+      };
+      const finalHistory = [...newChats.find((chat) => chat.id === selectedChatId).history, responseMessage];
+      const finalChats = newChats.map((chat) =>
+        chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
+      );
+      const result = checkForCommands(finalChats,responseMessage);
+      setChats(result);
+    }
+    catch ( error ) 
+    {
+      console.log( error );
+      setChats( pushMessage( newChats, { id: uuidv4().toString(), role: "INFO", content: "ERROR" }) );
+    }
   };
 
   const addNewChat = (chats,title,message) => {
@@ -137,9 +141,13 @@ function App() {
   };
   
   const loadMemory = (chats, key) => {
-    const mem = localStorage.getItem( "memory-"+ key );
+    const mem = localStorage.getItem( "memory-"+ key.toLowerCase() );
     return pushMessage( chats, { id: uuidv4().toString(), role : "system", content: "`" + key + ":`\n" + mem } );
   };
+
+  const doRoll = (chats, roll = 20) => {
+      return pushMessage( chats, { id: uuidv4().toString(), role : "system", content: "`Random number 1-" + roll + ": `\n" + ( 1 + Math.floor( Math.random() * roll ) ) } );
+  }
 
   const checkForCommands = (chats, message) => {
     if (message.role === "system" )
@@ -151,6 +159,10 @@ function App() {
       chats = cmd.slice(1).reduce( 
         (chats, arg) => loadMemory( chats, arg ),
         chats );
+    }
+    else if( cmd.length > 0 && cmd[0] === "/roll" )
+    {
+      chats = doRoll( chats, cmd[1] );
     }
 
     const regex = /```\s*COMMAND:\s*(\S+)\s*(\nARG:(.*?))```/gs;
@@ -175,11 +187,14 @@ function App() {
       if ( command === "NEWCHAT" && args.length === 2 ) {
         chats = addNewChat(chats, args[0], args[1]);
       }
-      if ( command === "SAVE" && args.length === 2 ) {
-        localStorage.setItem( "memory-"+ args[0], args[1] );
+      else if ( command === "SAVE" && args.length === 2 ) {
+        localStorage.setItem( "memory-"+ args[0].toLowerCase(), args[1] );
       }
-      if ( command === "LOAD" && args.length === 1 ) {
-        loadMemory( args[0] );
+      else if ( command === "LOAD" && args.length === 1 ) {
+        chats = loadMemory( chats, args[0] );
+      }
+      else if ( command === "ROLL" && args.length === 1 ) {
+        chats = doRoll( chats, args[0] ) 
       }
     }
     return chats;
