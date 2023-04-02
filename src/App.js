@@ -23,6 +23,7 @@ function App() {
   const [presencePenalty, setPresencePenalty] = useState(0);
   const [newChatName, setNewChatName] = useState("");
   const [templateValue, setTemplateValue] = useState("");
+  const [appendTemplateValue, setAppendTemplateValue] = useState("");
   const [templates, setTemplates] = useState( () => { 
     return JSON.parse(localStorage.getItem('templates')) ?? [
     {
@@ -58,21 +59,42 @@ function App() {
   useEffect(() => {
     localStorage.setItem('templates', JSON.stringify(templates));
   }, [templates]);
+  
+  const getHistory = (chats, id) => {
+    var chat = chats.find( (chat) => chat.id === selectedChatId );
+    return chat ? chat.history : [];
+  };
+
+  const pushMessage = (chats, message) => {
+    chats = chats.map((chat) =>
+      chat.id === selectedChatId ?  {...chat, history: [...chat.history, message ] } : chat
+    );
+    chats = checkForCommands( chats, message );
+    setChats(chats);
+    return chats;
+  };
+
+  const commitUserMessage = (event) => {
+    event.preventDefault();
+    
+    if ( !message || message.trim().length === 0) 
+      return;
+      
+    const newChats = pushMessage( chats, { id: uuidv4().toString(), role: "user", content: message } );
+    setChats(newChats);
+    setMessage("");
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
     
     const newMessage = { id: uuidv4().toString(), role: "user", content: message };
-    const newHistory = 
-      (message && message.trim().length !== 0) 
-        ? [...selectedChat.history, newMessage]
-        : selectedChat.history;
+    const newChats =
+      (message && message.trim().length !== 0)
+      ? pushMessage( chats, newMessage ) : chats;
 
-    const chatsWithSubmittedMessage = chats.map((chat) =>
-      chat.id === selectedChatId ? {...chat, history:newHistory} : chat
-    );
-    let newChats = checkForCommands( chatsWithSubmittedMessage, newMessage );
-    setChats(newChats);
+    const newChatWithSpinner = pushMessage( newChats, { id: uuidv4().toString(), role: "system", content: "Waiting for assistant..." });
+    setChats(newChatWithSpinner);
     setMessage("");
 
     openai.createChatCompletion( {
@@ -82,7 +104,7 @@ function App() {
       top_p: topP,
       frequency_penalty: frequencyPenalty,
       presence_penalty: presencePenalty,
-      messages: newHistory.map( (msg) => ({ role: msg.role, content: msg.content }) )
+      messages: (getHistory(newChats, selectedChatId)).map( (msg) => ({ role: msg.role, content: msg.content }) )
     })
       .then((response) => {
         console.log(response.data)
@@ -91,11 +113,12 @@ function App() {
           role: response.data.choices[0].message.role,
           content: response.data.choices[0].message.content,
         };
-        const finalHistory = [...newHistory, responseMessage];
+        const finalHistory = [...newChats.find((chat) => chat.id === selectedChatId).history, responseMessage];
         const finalChats = newChats.map((chat) =>
           chat.id === selectedChatId ?  {...chat, history: finalHistory} : chat
         );
-        setChats(checkForCommands(finalChats,responseMessage));
+        const result = checkForCommands(finalChats,responseMessage);
+        setChats(result);
       })
       .catch((error) => {
         console.log(error);
@@ -113,10 +136,23 @@ function App() {
     return [...chats, newChat]
   };
   
+  const loadMemory = (chats, key) => {
+    const mem = localStorage.getItem( "memory-"+ key );
+    return pushMessage( chats, { id: uuidv4().toString(), role : "system", content: "`" + key + ":`\n" + mem } );
+  };
+
   const checkForCommands = (chats, message) => {
-    console.log("checking for commands...")
     if (message.role === "system" )
       return chats;
+
+    const cmd = message.content.split( " " );
+    if( cmd.length > 1 && cmd[0] === "/load" )
+    {
+      chats = cmd.slice(1).reduce( 
+        (chats, arg) => loadMemory( chats, arg ),
+        chats );
+    }
+
     const regex = /```\s*COMMAND:\s*(\S+)\s*(\nARG:(.*?))```/gs;
     let match;
     while ((match = regex.exec(message.content))) {
@@ -137,7 +173,13 @@ function App() {
       }
 
       if ( command === "NEWCHAT" && args.length === 2 ) {
-        return addNewChat(chats, args[0], args[1]);
+        chats = addNewChat(chats, args[0], args[1]);
+      }
+      if ( command === "SAVE" && args.length === 2 ) {
+        localStorage.setItem( "memory-"+ args[0], args[1] );
+      }
+      if ( command === "LOAD" && args.length === 1 ) {
+        loadMemory( args[0] );
       }
     }
     return chats;
@@ -145,7 +187,6 @@ function App() {
 
   const handleChatSelect = (chatId) => {
     setSelectedChatId(chatId);
-    console.log( selectedChat );
   };
 
   const handleNewChat = () => {
@@ -228,11 +269,22 @@ function App() {
     setSelectedChatId(id);
     setTemplateValue("");
   };
+  
+  const handleAppendTemplate = (template) => {
+    if(!template) return;
+
+    const templateHistory = template.history.map((msg) => ({...msg, id: uuidv4().toString()}))
+    const chatsWithSubmittedMessage = chats.map((chat) =>
+      chat.id === selectedChatId ? {...chat, history: [...chat.history, ...templateHistory] } : chat
+    );
+    setChats(chatsWithSubmittedMessage);
+    setTemplateValue("");
+  };
 
   const handleSaveTemplate = () => {
     const newTemplate = {
       name: selectedChat.name,
-      history: [ selectedChat.history[0] ],
+      history: selectedChat.history,
     };
     const newTemplates = templates.filter( (t) => t.name !== selectedChat.name )
     setTemplates([...newTemplates, newTemplate]);
@@ -247,6 +299,8 @@ function App() {
 
   return (
     <div className="App">
+      <div>
+
       <div className="chat-list">
       <div className="new-chat-button" onClick={handleNewChat}>
         + New Chat
@@ -288,7 +342,18 @@ function App() {
             ))}
           </select>
         </div>
+        
+        <div className="new-chat-from-template">
+          <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value],setAppendTemplateValue)}>
+            <option value="">Append Template</option>
+            {templates.map((template, index) => (
+              <option key={index} value={index}>{template.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
+      </div>
+
 
       <div className="chat-container">
 
@@ -300,6 +365,7 @@ function App() {
         <ChatInput
           message={message}
           setMessage={setMessage}
+          handleCommit={commitUserMessage}
           handleSubmit={handleSubmit}
           handleFileSelect={handleFileSelect}
           />
