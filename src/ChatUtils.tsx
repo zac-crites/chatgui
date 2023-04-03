@@ -1,39 +1,39 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export const message = (role, content) => ({ id: uuidv4().toString(), role: role, content: content });
+export const message = (role:any, content:any) => ({ id: uuidv4().toString(), role: role, content: content });
 
-export const chat = (title, history) => ({
+export const chat = (title:any, history:any) => ({
     id: uuidv4().toString(),
     name: title,
     history: history ?? [],
 });
 
-export const chatWithPrompt = (title, prompt) => ({
+export const chatWithPrompt = (title:any, prompt:any) => ({
     id: uuidv4().toString(),
     name: title,
     history: prompt ? [message("system", prompt)] : [],
 });
 
-export const addNewChat = (chats, title, prompt) => [...chats, chatWithPrompt(title, prompt)];
+export const addNewChat = (chats:any, title:any, prompt:any) => [...chats, chatWithPrompt(title, prompt)];
 
-export const loadMemory = (chats, id, key) => {
+export const loadMemory = (chats:any, id:any, key:any) => {
     const mem = localStorage.getItem("memory-" + key.toLowerCase());
     return pushMessage(chats, id, message("system", "`" + key + ":`\n" + mem));
 };
 
-export const doRoll = (chats, id, roll = 20) => {
+export const doRoll = (chats:any, id:any, roll = 20) => {
     const msg = "`Random number 1-" + roll + ": `\n" + (1 + Math.floor(Math.random() * roll))
     return pushMessage(chats, id, message("system", msg));
 }
 
-export const checkForCommands = (chats, id, message) => {
+export const checkForCommands = (chats:any, id:any, message:any) => {
     if (message.role === "system")
         return chats;
 
     const cmd = message.content.split(" ");
     if (cmd.length > 1 && cmd[0] === "/load") {
         chats = cmd.slice(1).reduce(
-            (chats, arg) => loadMemory(chats, id, arg),
+            (chats:any, arg:any) => loadMemory(chats, id, arg),
             chats);
     }
     else if (cmd.length > 0 && cmd[0] === "/roll") {
@@ -44,7 +44,7 @@ export const checkForCommands = (chats, id, message) => {
     let match;
     while ((match = regex.exec(message.content))) {
         const command = match[1];
-        const args = [];
+        const args : Array<any> = [];
 
         // Match all the argument strings and add them to the args array
         const argRegex = /ARG:(.*?)(?=\nARG:|$)/gs;
@@ -74,26 +74,26 @@ export const checkForCommands = (chats, id, message) => {
     }
     return chats;
 };
-export const updateChat = (chats, id, fn) => chats.map((c) => c.id === id ? fn(c) : c);
+export const updateChat = (chats:any, id:any, fn:any) => chats.map((c:any) => c.id === id ? fn(c) : c);
 
-export const replaceChat = (chats, id, chat) => updateChat(chats, id, c => chat);
+export const replaceChat = (chats:any, id:any, chat:any) => updateChat(chats, id, (c:any) => chat);
 
-export const replaceHistory = (chats, id, history) => updateChat(chats, id, (c) => ({ ...c, history: history }));
+export const replaceHistory = (chats:any, id:any, history:any) => updateChat(chats, id, (c:any) => ({ ...c, history: history }));
 
-export const getChat = (chats, id) => chats.find((c) => c.id === id);
+export const getChat = (chats:any, id:any) => chats.find((c:any) => c.id === id);
 
-export const pushMessage = (chats, id, message) => {
+export const pushMessage = (chats:any, id:any, message:any) => {
     chats = replaceHistory(chats, id, [...getChat(chats, id).history, message]);
     chats = checkForCommands(chats, id, message);
     return chats;
 };
 
-export const appendTemplate = (chats, id, template) => {
+export const appendTemplate = (chats:any, id:any, template:any) => {
     return replaceHistory(chats, id, [
         ...getChat(chats, id).history,
-        ...template.history.map((m) => message(m.role, m.content))
+        ...template.history.map((m:any) => message(m.role, m.content))
     ]);
 };
 
-export const newFromTemplate = (chats, template) =>
-    [...chats, chat(template.name, template.history.map((m) => message(m.role, m.content)))];
+export const newFromTemplate = (chats:any, template:any) =>
+    [...chats, chat(template.name, template.history.map((m:any) => message(m.role, m.content)))];

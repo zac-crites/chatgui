@@ -1,14 +1,14 @@
 import './App.css';
 import { Configuration, OpenAIApi } from 'openai';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import * as Utils from './ChatUtils';
 
+import * as Utils from './ChatUtils';
 import ChatHistory from './ChatHistory';
 import SettingsPanel from './SettingsPanel';
 import ChatInput from './ChatInput';
 
-const config = new Configuration({ apiKey: localStorage.getItem("apiKey") });
+const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
 const openai = new OpenAIApi(config);
 
 function App() {
@@ -24,18 +24,18 @@ function App() {
   const [appendTemplateValue, setAppendTemplateValue] = useState("");
 
   const [templates, setTemplates] = useState(() =>
-    JSON.parse(localStorage.getItem('templates')) ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
+    JSON.parse(localStorage.getItem('templates') ?? "") ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
   );
 
   const [chats, setChats] = useState(() =>
-    JSON.parse(localStorage.getItem('chats')) ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
+    JSON.parse(localStorage.getItem('chats') ?? "") ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
   );
 
   const [selectedChatId, setSelectedChatId] = useState(() =>
     localStorage.getItem("selectedChatId") ?? uuidv4().toString()
   );
 
-  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || { history: [] };
+  const selectedChat = chats.find((chat:any) => chat.id === selectedChatId) || { history: [] };
 
   useEffect(() => {
     localStorage.setItem('chats', JSON.stringify(chats));
@@ -49,19 +49,19 @@ function App() {
     localStorage.setItem('templates', JSON.stringify(templates));
   }, [templates]);
 
-  const commitUserMessage = (chats) => {
+  const commitUserMessage = (chats:any) => {
     return (message && message.trim().length !== 0)
       ? Utils.pushMessage(chats, selectedChatId, Utils.message("user", message))
       : chats;
   };
 
-  const handleCommit = (event) => {
+  const handleCommit = (event:any) => {
     event.preventDefault();
     setChats(commitUserMessage(chats));
     setMessage("");
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event:any) => {
     event.preventDefault();
 
     const newChats = commitUserMessage(chats);
@@ -77,12 +77,14 @@ function App() {
         top_p: topP,
         frequency_penalty: frequencyPenalty,
         presence_penalty: presencePenalty,
-        messages: (Utils.getChat(newChats, selectedChatId).history).map((msg) => ({ role: msg.role, content: msg.content }))
+        messages: (Utils.getChat(newChats, selectedChatId).history).map((msg:any) => ({ role: msg.role, content: msg.content }))
       });
       console.log(response.data)
+      const choice = response.data.choices[0] as any;
+      if (!choice) return;
       setChats(Utils.pushMessage(newChats, selectedChatId, Utils.message(
-        response.data.choices[0].message.role,
-        response.data.choices[0].message.content,
+        choice.message.role,
+        choice.message.content,
       )));
     }
     catch (error) {
@@ -91,7 +93,7 @@ function App() {
     }
   };
 
-  const handleChatSelect = (chatId) => {
+  const handleChatSelect = (chatId:string) => {
     setSelectedChatId(chatId);
   };
 
@@ -101,44 +103,44 @@ function App() {
     setSelectedChatId(newChats[newChats.length - 1].id);
   };
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = (event:any) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const newChats = Utils.pushMessage(chats, selectedChatId, Utils.message("user", "```\n" + e.target.result + "```"));
+        const newChats = Utils.pushMessage(chats, selectedChatId, Utils.message("user", "```\n" + (e.target??{}).result + "```"));
         setChats(newChats);
       };
       reader.readAsText(file);
     }
   };
 
-  const handleDeleteChat = (chatId) => {
-    const newChats = chats.filter((chat) => chat.id !== chatId);
+  const handleDeleteChat = (chatId:any) => {
+    const newChats = chats.filter((chat:any) => chat.id !== chatId);
     setChats(newChats);
-    if (!newChats.some((chat) => chat.id === selectedChatId)) {
+    if (!newChats.some((chat:any) => chat.id === selectedChatId)) {
       setSelectedChatId(newChats.length > 0 ? newChats[0].id : "");
     }
   };
 
-  const handleEditMessage = (messageId, newContent) => {
+  const handleEditMessage = (messageId:any, newContent:any) => {
     setChats(
       Utils.replaceHistory(
         chats,
         selectedChatId,
-        selectedChat.history.map((message) => message.id === messageId ? { ...message, content: newContent } : message)));
+        selectedChat.history.map((message:any) => message.id === messageId ? { ...message, content: newContent } : message)));
   };
 
-  const handleDeleteMessage = (messageId) => {
-    setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.history.filter((message) => message.id !== messageId)));
+  const handleDeleteMessage = (messageId:any) => {
+    setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.history.filter((message:any) => message.id !== messageId)));
   };
 
-  const handleChatNameEdit = (chatId, newName) => {
-    setChats(Utils.updateChat(chats, chatId, (c) => ({ ...c, name: newName })));
+  const handleChatNameEdit = (chatId:any, newName:any) => {
+    setChats(Utils.updateChat(chats, chatId, (c:any) => ({ ...c, name: newName })));
     setNewChatName("");
   };
 
-  const handleNewChatFromTemplate = (template) => {
+  const handleNewChatFromTemplate = (template:any) => {
     if (!template) return;
     const newChats = Utils.newFromTemplate(chats, template);
     setChats(newChats);
@@ -146,10 +148,10 @@ function App() {
     setTemplateValue("");
   };
 
-  const handleAppendTemplate = (template) => {
+  const handleAppendTemplate = (template:any) => {
     if (!template) return;
     setChats(Utils.appendTemplate(chats, selectedChatId, template));
-    setTemplateValue("");
+    setAppendTemplateValue("");
   };
 
   const handleSaveTemplate = () => {
@@ -157,7 +159,7 @@ function App() {
       name: selectedChat.name,
       history: selectedChat.history,
     };
-    const newTemplates = templates.filter((t) => t.name !== selectedChat.name)
+    const newTemplates = templates.filter((t:any) => t.name !== selectedChat.name)
     setTemplates([...newTemplates, newTemplate]);
   };
 
@@ -173,7 +175,7 @@ function App() {
           <div className="new-chat-button" onClick={handleNewChat}>
             + New Chat
           </div>
-          {chats.map((chat) => (
+          {chats.map((chat:any) => (
             <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}>
               <div
                 className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
@@ -203,18 +205,18 @@ function App() {
           ))}
 
           <div className="new-chat-from-template">
-            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value], setTemplateValue)}>
+            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value])}>
               <option value="">New Chat from Template</option>
-              {templates.map((template, index) => (
+              {templates.map((template:any, index:any) => (
                 <option key={index} value={index}>{template.name}</option>
               ))}
             </select>
           </div>
 
           <div className="new-chat-from-template">
-            <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value], setAppendTemplateValue)}>
+            <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value])}>
               <option value="">Append Template</option>
-              {templates.map((template, index) => (
+              {templates.map((template:any, index:any) => (
                 <option key={index} value={index}>{template.name}</option>
               ))}
             </select>
