@@ -1,29 +1,42 @@
 import { v4 as uuidv4 } from 'uuid';
 
-export const message = (role:any, content:any) => ({ id: uuidv4().toString(), role: role, content: content });
+export class Message {
+    readonly id : string;
+    readonly role : string;
+    readonly content : string;
+    constructor(role:string, content:string)
+    {
+        this.id = uuidv4().toString();
+        this.role = role;
+        this.content = content;
+    }
+}
 
-export const chat = (title:any, history:any) => ({
-    id: uuidv4().toString(),
-    name: title,
-    history: history ?? [],
-});
+export class Chat {
+    readonly id : string;
+    readonly name : string;
+    readonly log : Array<Message>;
+    public constructor(name:string, log:Array<Message>)
+    {
+        this.id = uuidv4().toString();
+        this.name = name;
+        this.log = log;
+    }
+}
 
-export const chatWithPrompt = (title:any, prompt:any) => ({
-    id: uuidv4().toString(),
-    name: title,
-    history: prompt ? [message("system", prompt)] : [],
-});
+export const chatWithPrompt = (title:string, prompt:string) => 
+    new Chat( title, [new Message("system", prompt)] );
 
-export const addNewChat = (chats:any, title:any, prompt:any) => [...chats, chatWithPrompt(title, prompt)];
+export const addNewChat = (chats:Array<Chat>, title:string, prompt:string) => [...chats, chatWithPrompt(title, prompt)];
 
-export const loadMemory = (chats:any, id:any, key:any) => {
+export const loadMemory = (chats:Array<Chat>, id:string, key:string) => {
     const mem = localStorage.getItem("memory-" + key.toLowerCase());
-    return pushMessage(chats, id, message("system", "`" + key + ":`\n" + mem));
+    return pushMessage(chats, id, new Message("system", "`" + key + ":`\n" + mem));
 };
 
-export const doRoll = (chats:any, id:any, roll = 20) => {
+export const doRoll = (chats:Array<Chat>, id:string, roll = 20) => {
     const msg = "`Random number 1-" + roll + ": `\n" + (1 + Math.floor(Math.random() * roll))
-    return pushMessage(chats, id, message("system", msg));
+    return pushMessage(chats, id, new Message("system", msg));
 }
 
 export const checkForCommands = (chats:any, id:any, message:any) => {
@@ -74,26 +87,27 @@ export const checkForCommands = (chats:any, id:any, message:any) => {
     }
     return chats;
 };
-export const updateChat = (chats:any, id:any, fn:any) => chats.map((c:any) => c.id === id ? fn(c) : c);
+export const updateChat = (chats:Chat[], id:string, fn:any) => chats.map((c:Chat) => c.id === id ? fn(c) : c);
 
-export const replaceChat = (chats:any, id:any, chat:any) => updateChat(chats, id, (c:any) => chat);
+export const replaceChat = (chats:Chat[], id:string, chat:Chat) => updateChat(chats, id, (c:any) => chat);
 
-export const replaceHistory = (chats:any, id:any, history:any) => updateChat(chats, id, (c:any) => ({ ...c, history: history }));
+export const replaceHistory = (chats:Chat[], id:string, log:Message[]) => updateChat(chats, id, (c:Chat) => ({ ...c, log: log } as Chat));
 
-export const getChat = (chats:any, id:any) => chats.find((c:any) => c.id === id);
+export const getChat = (chats:Chat[], id:string) => chats.find((c) => c.id === id) || new Chat( "", [] );
 
-export const pushMessage = (chats:any, id:any, message:any) => {
-    chats = replaceHistory(chats, id, [...getChat(chats, id).history, message]);
+export const pushMessage = (chats:Chat[], id:string, message:Message) => {
+    console.log(message);
+    chats = replaceHistory(chats, id, [...getChat(chats, id).log, message]);
     chats = checkForCommands(chats, id, message);
     return chats;
 };
 
 export const appendTemplate = (chats:any, id:any, template:any) => {
     return replaceHistory(chats, id, [
-        ...getChat(chats, id).history,
-        ...template.history.map((m:any) => message(m.role, m.content))
+        ...getChat(chats, id).log,
+        ...template.history.map((m:any) => new Message(m.role, m.content))
     ]);
 };
 
 export const newFromTemplate = (chats:any, template:any) =>
-    [...chats, chat(template.name, template.history.map((m:any) => message(m.role, m.content)))];
+    [...chats, new Chat(template.name, template.history.map((m:any) => new Message(m.role, m.content)))];

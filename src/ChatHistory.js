@@ -29,7 +29,8 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
 
   return (
     <div className="chat-history" ref={chatHistoryRef}>
-      {chatHistory.map((message, index) => (
+      { chatHistory ?
+        chatHistory.map((message, index) => (
         <div key={index} className={`chat-message ${message.role}`}>
           <div className="message-role">{message.role.toUpperCase()}</div> 
           {editingMessageId === message.id ? (
@@ -61,7 +62,10 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
             </div>
           )}
         </div>
-      ))}
+      ))
+        :
+        <div></div>
+    }
     </div>
   );
 }
