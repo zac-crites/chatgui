@@ -16,11 +16,11 @@ export class Chat {
     readonly id : string;
     readonly name : string;
     readonly log : Array<Message>;
-    public constructor(name:string, log:Array<Message>)
+    public constructor(name:string, log:Array<Message> = [])
     {
         this.id = uuidv4().toString();
         this.name = name;
-        this.log = log;
+        this.log = log ?? [];
     }
 }
 

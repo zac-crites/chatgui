@@ -13,6 +13,8 @@ const openai = new OpenAIApi(config);
 
 function App() {
 
+  const defaultChat = Utils.chatWithPrompt("Assistant", "You are a helpful assistant.");
+
   const [message, setMessage] = useState('');
   const [numTokens, setNumTokens] = useState(1024);
   const [temperature, setTemperature] = useState(0.7);
@@ -22,32 +24,23 @@ function App() {
   const [newChatName, setNewChatName] = useState("");
   const [templateValue, setTemplateValue] = useState("");
   const [appendTemplateValue, setAppendTemplateValue] = useState("");
+  const [transientChatId, setTransientChatId] = useState("");
 
   const [templates, setTemplates] = useState(() =>
-    JSON.parse(localStorage.getItem('templates') as string) ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
-  );
-
+    JSON.parse(localStorage.getItem('templates') as string) ?? [defaultChat]);
   const [chats, setChats] = useState<Utils.Chat[]>(() =>
-    JSON.parse(localStorage.getItem('chats') as string) ?? [Utils.chatWithPrompt("Assistant", "You are a helpful assistant.")]
-  );
-
+    JSON.parse(localStorage.getItem('chats') as string) ?? [defaultChat]);
   const [selectedChatId, setSelectedChatId] = useState(() =>
-    localStorage.getItem("selectedChatId") ?? uuidv4().toString()
-  );
+    localStorage.getItem("selectedChatId") ?? defaultChat.id);
+  const [history, setHistory] = useState<Utils.Chat[]>(() =>
+    JSON.parse(localStorage.getItem('history') as string) ?? []);
 
   const selectedChat = chats.find((chat) => chat.id === selectedChatId) || new Utils.Chat("", []);
 
-  useEffect(() => {
-    localStorage.setItem('chats', JSON.stringify(chats));
-  }, [chats]);
-
-  useEffect(() => {
-    localStorage.setItem('selectedChatId', selectedChatId);
-  }, [selectedChatId]);
-
-  useEffect(() => {
-    localStorage.setItem('templates', JSON.stringify(templates));
-  }, [templates]);
+  useEffect(() => localStorage.setItem('chats', JSON.stringify(chats) ), [chats]);
+  useEffect(() => localStorage.setItem('selectedChatId', selectedChatId), [selectedChatId]);
+  useEffect(() => localStorage.setItem('templates', JSON.stringify(templates)), [templates]);
+  useEffect(() => localStorage.setItem('history', JSON.stringify(history)), [history]);
 
   const commitUserMessage = (chats: Utils.Chat[]) => {
     return (message && message.trim().length !== 0)
@@ -82,10 +75,14 @@ function App() {
       console.log(response.data)
       const choice = response.data.choices[0] as any;
       if (!choice) return;
-      setChats(Utils.pushMessage(newChats, selectedChatId, new Utils.Message(
+      const final = Utils.pushMessage(newChats, selectedChatId, new Utils.Message(
         choice.message.role,
         choice.message.content,
-      )));
+      ));
+      setChats(final);
+      const finalChat = Utils.getChat(final, selectedChatId)
+      setHistory([new Utils.Chat(finalChat.name, finalChat.log), ...history].slice(0, 50));
+      setTransientChatId("");
     }
     catch (error) {
       console.log(error);
@@ -94,6 +91,9 @@ function App() {
   };
 
   const handleChatSelect = (chatId: string) => {
+    if (chatId !== transientChatId) {
+      setChats(chats.filter(c => c.id !== transientChatId));
+    }
     setSelectedChatId(chatId);
   };
 
@@ -115,12 +115,20 @@ function App() {
     }
   };
 
-  const handleDeleteChat = (chatId: any) => {
+  const handleDeleteChat = (chatId: string) => {
     const newChats = chats.filter((chat: any) => chat.id !== chatId);
     setChats(newChats);
     if (!newChats.some((chat: any) => chat.id === selectedChatId)) {
       setSelectedChatId(newChats.length > 0 ? newChats[0].id : "");
     }
+  };
+
+  const handleClickHistory = (chatId: string) => {
+    const chat = history.find(chat => chat.id === chatId);
+    const newChat = new Utils.Chat(chat?.name ?? "", chat?.log ?? []);
+    setChats([...chats.filter(c => c.id !== transientChatId), newChat]);
+    setSelectedChatId(newChat.id);
+    setTransientChatId(newChat.id);
   };
 
   const handleEditMessage = (messageId: any, newContent: any) => {
@@ -175,7 +183,7 @@ function App() {
             + New Chat
           </div>
           {chats.map((chat: any) => (
-            <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''}`}>
+            <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''} ${chat.id === transientChatId ? 'transient' : ''}`}>
               <div
                 className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
                 onClick={() => handleChatSelect(chat.id)}
@@ -219,6 +227,14 @@ function App() {
                 <option key={index} value={index}>{template.name}</option>
               ))}
             </select>
+          </div>
+
+          <div className='history-panel'>
+            {history.map((chat: Utils.Chat, index) => (
+              <div key={index} onClick={() => handleClickHistory(chat.id)}>
+                {chat.name.slice(0, 10)} - {chat.log[chat.log.length - 1].content.slice(0, 20)}
+              </div>
+            ))}
           </div>
         </div>
       </div>
