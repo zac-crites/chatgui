@@ -28,7 +28,7 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
   }, [chatHistory]);
 
   return (
-    <div className="chat-history" ref={chatHistoryRef}>
+    <div className="chat-history scrollbar" ref={chatHistoryRef}>
       { chatHistory ?
         chatHistory.map((message, index) => (
         <div key={index} className={`chat-message ${message.role}`}>

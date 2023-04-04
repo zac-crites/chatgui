@@ -1,12 +1,13 @@
 import './App.css';
 import { Configuration, OpenAIApi } from 'openai';
 import { useState, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { Modal, Button } from "react-bootstrap";
 
 import * as Utils from './ChatUtils';
 import ChatHistory from './ChatHistory';
 import SettingsPanel from './SettingsPanel';
 import ChatInput from './ChatInput';
+import ItemChooser from './ItemChooser';
 
 const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
 const openai = new OpenAIApi(config);
@@ -25,6 +26,8 @@ function App() {
   const [templateValue, setTemplateValue] = useState("");
   const [appendTemplateValue, setAppendTemplateValue] = useState("");
   const [transientChatId, setTransientChatId] = useState("");
+
+  const [showModal, setShowModal] = useState(false);
 
   const [templates, setTemplates] = useState(() =>
     JSON.parse(localStorage.getItem('templates') as string) ?? [defaultChat]);
@@ -93,6 +96,8 @@ function App() {
   const handleChatSelect = (chatId: string) => {
     if (chatId !== transientChatId) {
       setChats(chats.filter(c => c.id !== transientChatId));
+    } else {
+      setTransientChatId("");
     }
     setSelectedChatId(chatId);
   };
@@ -175,6 +180,12 @@ function App() {
     setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.log.length > 0 ? [selectedChat.log[0]] : []));
   };
 
+  const handleShowModal = () => {
+    console.log("showmodal"); 
+    setShowModal(true);
+  }
+  const handleCloseModal = () => setShowModal(false);
+
   return (
     <div className="App">
       <div>
@@ -210,6 +221,11 @@ function App() {
               </div>
             </div>
           ))}
+          
+
+          <div className="new-chat-from-template">
+            <button onClick={handleShowModal}> TEST </button>
+          </div>
 
           <div className="new-chat-from-template">
             <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value])}>
@@ -229,13 +245,15 @@ function App() {
             </select>
           </div>
 
-          <div className='history-panel'>
-            {history.map((chat: Utils.Chat, index) => (
-              <div key={index} onClick={() => handleClickHistory(chat.id)}>
-                {chat.name.slice(0, 10)} - {chat.log[chat.log.length - 1].content.slice(0, 20)}
-              </div>
-            ))}
-          </div>
+          <ItemChooser 
+            title="Request History"
+            items={history}
+            onSelect={(e:Utils.Chat) => handleClickHistory(e.id)}
+            isOpen={showModal}
+            onClose={()=>setShowModal(false)}
+            getLabel={(chat:Utils.Chat)=> chat.name}
+            getDetail={(chat:Utils.Chat)=> chat.log[chat.log.length-1].content}
+            />
         </div>
       </div>
 
