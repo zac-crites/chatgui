@@ -16,10 +16,10 @@ export class Chat {
     readonly id : string;
     readonly name : string;
     readonly log : Array<Message>;
-    public constructor(name:string, log:Array<Message> = [])
+    public constructor(name:string = "", log:Array<Message> = [])
     {
         this.id = uuidv4().toString();
-        this.name = name;
+        this.name = name ?? "";
         this.log = log ?? [];
     }
 }
@@ -39,7 +39,7 @@ export const doRoll = (chats:Array<Chat>, id:string, roll = 20) => {
     return pushMessage(chats, id, new Message("system", msg));
 }
 
-export const checkForCommands = (chats:any, id:any, message:any) => {
+export const checkForCommands = (chats:Chat[], id:string, message:Message) => {
     if (message.role === "system")
         return chats;
 
@@ -50,7 +50,7 @@ export const checkForCommands = (chats:any, id:any, message:any) => {
             chats);
     }
     else if (cmd.length > 0 && cmd[0] === "/roll") {
-        chats = doRoll(chats, id, cmd[1]);
+        chats = doRoll(chats, id, parseInt( cmd[1] ) );
     }
 
     const regex = /```\s*COMMAND:\s*(\S+)\s*(\nARG:(.*?))```/gs;
@@ -94,6 +94,11 @@ export const replaceChat = (chats:Chat[], id:string, chat:Chat) => updateChat(ch
 export const replaceHistory = (chats:Chat[], id:string, log:Message[]) => updateChat(chats, id, (c:Chat) => ({ ...c, log: log } as Chat));
 
 export const getChat = (chats:Chat[], id:string) => chats.find((c) => c.id === id) || new Chat( "", [] );
+
+export const previousChat = (chats:Chat[], id:string) => {
+    const index = chats.findIndex( c => c.id ) - 1;
+    return chats.length > 0 ? chats[Math.max(0,index)] : new Chat();
+};
 
 export const pushMessage = (chats:Chat[], id:string, message:Message) => {
     console.log(message);

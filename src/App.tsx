@@ -27,23 +27,27 @@ function App() {
   const [appendTemplateValue, setAppendTemplateValue] = useState("");
   const [transientChatId, setTransientChatId] = useState("");
 
-  const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState<string | null>(null);
+  const [modalListChats, setModalListChats] = useState<Utils.Chat[] | null>(null);
 
-  const [templates, setTemplates] = useState<Utils.Chat[]>(() => 
-    JSON.parse(localStorage.getItem('templates') as string) ?? [defaultChat] );
+  const [templates, setTemplates] = useState<Utils.Chat[]>(() =>
+    JSON.parse(localStorage.getItem('templates') as string) ?? [defaultChat]);
   const [chats, setChats] = useState<Utils.Chat[]>(() =>
     JSON.parse(localStorage.getItem('chats') as string) ?? [defaultChat]);
   const [selectedChatId, setSelectedChatId] = useState(() =>
     localStorage.getItem("selectedChatId") ?? defaultChat.id);
   const [history, setHistory] = useState<Utils.Chat[]>(() =>
     JSON.parse(localStorage.getItem('history') as string) ?? []);
+  const [archive, setArchive] = useState<Utils.Chat[]>(() =>
+    JSON.parse(localStorage.getItem('archive') as string) ?? []);
 
   const selectedChat = chats.find((chat) => chat.id === selectedChatId) || new Utils.Chat("", []);
 
-  useEffect(() => localStorage.setItem('chats', JSON.stringify(chats) ), [chats]);
+  useEffect(() => localStorage.setItem('chats', JSON.stringify(chats)), [chats]);
   useEffect(() => localStorage.setItem('selectedChatId', selectedChatId), [selectedChatId]);
   useEffect(() => localStorage.setItem('templates', JSON.stringify(templates)), [templates]);
   useEffect(() => localStorage.setItem('history', JSON.stringify(history)), [history]);
+  useEffect(() => localStorage.setItem('archive', JSON.stringify(archive)), [archive]);
 
   const commitUserMessage = (chats: Utils.Chat[]) => {
     return (message && message.trim().length !== 0)
@@ -120,20 +124,20 @@ function App() {
     }
   };
 
-  const handleDeleteChat = (chatId: string) => {
-    const newChats = chats.filter((chat: any) => chat.id !== chatId);
+  const handleArchiveChat = (chatId: string) => {
+    const idx = chats.findIndex(c => c.id === chatId)
+    const chat = chats[idx];
+    const newChats = chats.filter((c: any) => c.id !== chatId);
     setChats(newChats);
-    if (!newChats.some((chat: any) => chat.id === selectedChatId)) {
-      setSelectedChatId(newChats.length > 0 ? newChats[0].id : "");
-    }
+    setArchive(chat ? [chat, ...archive] : archive);
+    setSelectedChatId( newChats.length > 0 ? newChats[Math.min(newChats.length-1,idx)].id : defaultChat.id )
   };
 
-  const handleClickHistory = (chatId: string) => {
-    const chat = history.find(chat => chat.id === chatId);
-    const newChat = new Utils.Chat(chat?.name ?? "", chat?.log ?? []);
-    setChats([...chats.filter(c => c.id !== transientChatId), newChat]);
-    setSelectedChatId(newChat.id);
-    setTransientChatId(newChat.id);
+  const handleDeleteChat = (chatId: string) => {
+    const idx = chats.findIndex(c => c.id === chatId)
+    const newChats = chats.filter((chat: any) => chat.id !== chatId);
+    setChats(newChats);
+    setSelectedChatId( newChats.length > 0 ? newChats[Math.min(newChats.length-1,idx)].id : defaultChat.id )
   };
 
   const handleEditMessage = (messageId: any, newContent: any) => {
@@ -180,9 +184,30 @@ function App() {
     setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.log.length > 0 ? [selectedChat.log[0]] : []));
   };
 
-  const handleShowModal = () => {
-    setShowModal(true);
+  const handleShowHistory = () => {
+    setModalTitle("Response History");
+    setModalListChats(history);
   }
+
+  const handleShowArchive = () => {
+    setModalTitle("Archived Chats");
+    setModalListChats(archive);
+  }
+
+  const handleCloseModal = () => {
+    setModalTitle(null);
+    setModalListChats(null);
+  }
+  
+  const handleClickChatListItem = (chatId: string) => {
+    if ( modalListChats === null) return;
+
+    const chat = modalListChats.find(chat => chat.id === chatId);
+    const newChat = new Utils.Chat(chat?.name ?? "", chat?.log ?? []);
+    setChats([...chats.filter(c => c.id !== transientChatId), newChat]);
+    setSelectedChatId(newChat.id);
+    setTransientChatId(newChat.id);
+  };
 
   return (
     <div className="App">
@@ -191,7 +216,7 @@ function App() {
           <div className="new-chat-from-template">
             <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[parseInt(e.target.value)])}>
               <option value="">New Chat</option>
-              {templates.map((template:Utils.Chat, index: number) => (
+              {templates.map((template: Utils.Chat, index: number) => (
                 <option key={index} value={index}>{template.name}</option>
               ))}
             </select>
@@ -217,7 +242,7 @@ function App() {
                     }}
                   />
                 ) : (
-                  chat.name
+                  "" + chat.name
                 )}
               </div>
               <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
@@ -227,7 +252,9 @@ function App() {
           ))}
 
           <div className="new-chat-from-template">
-            <button onClick={handleShowModal}> TEST </button>
+            <button onClick={handleShowHistory}>⏱️</button>
+            <button onClick={handleShowArchive}>⏱️⏱️</button>
+            <button onClick={() => handleArchiveChat(selectedChatId)}>📁</button>
           </div>
 
           <div className="new-chat-from-template">
@@ -239,15 +266,15 @@ function App() {
             </select>
           </div>
 
-          <ItemChooser 
-            title="Response History"
-            items={history}
-            onSelect={(e:Utils.Chat) => handleClickHistory(e.id)}
-            isOpen={showModal}
-            onClose={()=>setShowModal(false)}
-            getLabel={(chat:Utils.Chat)=> chat.name}
-            getDetail={(chat:Utils.Chat)=> chat.log[chat.log.length-1].content}
-            />
+          <ItemChooser
+            title={modalTitle ?? "Select Chat"}
+            items={modalListChats ?? []}
+            onSelect={(e: Utils.Chat) => handleClickChatListItem(e.id)}
+            isOpen={modalTitle !== null}
+            onClose={handleCloseModal}
+            getLabel={(chat: Utils.Chat) => chat.name}
+            getDetail={(chat: Utils.Chat) => chat.log[chat.log.length - 1].content}
+          />
         </div>
       </div>
 
