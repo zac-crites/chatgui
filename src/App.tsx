@@ -29,8 +29,8 @@ function App() {
 
   const [showModal, setShowModal] = useState(false);
 
-  const [templates, setTemplates] = useState(() =>
-    JSON.parse(localStorage.getItem('templates') as string) ?? [defaultChat]);
+  const [templates, setTemplates] = useState<Utils.Chat[]>(() => 
+    JSON.parse(localStorage.getItem('templates') as string) ?? [defaultChat] );
   const [chats, setChats] = useState<Utils.Chat[]>(() =>
     JSON.parse(localStorage.getItem('chats') as string) ?? [defaultChat]);
   const [selectedChatId, setSelectedChatId] = useState(() =>
@@ -168,11 +168,11 @@ function App() {
   };
 
   const handleSaveTemplate = () => {
-    const newTemplate = {
-      name: selectedChat.name,
-      history: selectedChat.log,
-    };
-    const newTemplates = templates.filter((t: any) => t.name !== selectedChat.name)
+    const newTemplate = new Utils.Chat(
+      selectedChat.name,
+      selectedChat.log,
+    );
+    const newTemplates = templates.filter((t) => t.name !== selectedChat.name)
     setTemplates([...newTemplates, newTemplate]);
   };
 
@@ -181,19 +181,17 @@ function App() {
   };
 
   const handleShowModal = () => {
-    console.log("showmodal"); 
     setShowModal(true);
   }
-  const handleCloseModal = () => setShowModal(false);
 
   return (
     <div className="App">
       <div>
         <div className="chat-list">
           <div className="new-chat-from-template">
-            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value])}>
+            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[parseInt(e.target.value)])}>
               <option value="">New Chat</option>
-              {templates.map((template: any, index: any) => (
+              {templates.map((template:Utils.Chat, index: number) => (
                 <option key={index} value={index}>{template.name}</option>
               ))}
             </select>
@@ -232,11 +230,10 @@ function App() {
             <button onClick={handleShowModal}> TEST </button>
           </div>
 
-
           <div className="new-chat-from-template">
-            <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value])}>
+            <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[parseInt(e.target.value)])}>
               <option value="">Append Template</option>
-              {templates.map((template: any, index: any) => (
+              {templates.map((template: Utils.Chat, index: number) => (
                 <option key={index} value={index}>{template.name}</option>
               ))}
             </select>
