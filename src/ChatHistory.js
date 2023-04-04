@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
-function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
+function ChatHistory({ chat, onMessageEdit, onMessageDelete, onSetRole }) {
   const [editingMessageId, setEditingMessageId] = useState(null);
-  const [lastText, setLastText] = useState("");
-  const chatHistoryRef = React.useRef(null);
+  const chatHistoryRef = useRef(null);
+  const previousChatRef = useRef();
+
+  const roleList = ["user", "assistant", "system"];
+
+  const chatHistory = chat.log;
 
   const handleEditButtonClick = (messageId) => {
     setEditingMessageId(messageId);
@@ -24,21 +28,38 @@ function ChatHistory({ chatHistory, onMessageEdit, onMessageDelete }) {
   };
 
   React.useEffect(() => {
-    chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
-  }, [chatHistory]);
+    const old = previousChatRef.current ?? { id : "", log : [] };
+    if( old.id !== chat.id || 
+      (old?.log?.length > 0 && chat?.log?.length > 0 && old.log[old.log.length-1].id !== chat.log[chat.log.length-1].id) )
+    {
+      chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
+    }
+
+    previousChatRef.current = chat;
+  }, [chat]);
 
   return (
     <div className="chat-history scrollbar" ref={chatHistoryRef}>
       { chatHistory ?
         chatHistory.map((message, index) => (
         <div key={index} className={`chat-message ${message.role}`}>
-          <div className="message-role">{message.role.toUpperCase()}</div> 
+          <div className="message-role">
+            { roleList.find( r => r === message.role ) ? (
+              <select value={message.role} onChange={(e) => onSetRole(message.id, e.target.value)}>
+                <option>user</option>  
+                <option>assistant</option>  
+                <option>system</option>  
+              </select>  
+            ) : ( 
+              <div>
+                {message.role.toUpperCase()}
+              </div>
+            )
+          }
+          </div> 
           {editingMessageId === message.id ? (
             <div>
                 <div className="message-actions">
-                    <button onClick={(event) => handleEditSubmit(message.id, lastText)}>
-                        Save
-                    </button>
                     <button onClick={handleEditCancel}>Cancel</button>
                 </div>
               <textarea

@@ -277,7 +277,30 @@ button {
   left: 0;
   font-size: 12px;
   font-weight: bold;
+  color: #fff;
+}
+
+.message-role > div {
   padding: 4px 8px;
+}
+
+.message-role select {
+  margin-right: 10px;
+  margin-bottom: 0;
+  border: none;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color:transparent;
+}
+
+.message-role option {
+  background-color: #2d2d2d;
   color: #fff;
 }
 

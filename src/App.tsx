@@ -151,6 +151,14 @@ function App() {
   const handleDeleteMessage = (messageId: any) => {
     setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.log.filter((message: any) => message.id !== messageId)));
   };
+  
+  const handleEditRole = (messageId: string, newRole: string) => {
+    setChats(
+      Utils.replaceHistory(
+        chats,
+        selectedChatId,
+        selectedChat.log.map((message: any) => message.id === messageId ? { ...message, role: newRole } : message)));
+  };
 
   const handleChatNameEdit = (chatId: any, newName: any) => {
     setChats(Utils.updateChat(chats, chatId, (c: any) => ({ ...c, name: newName })));
@@ -280,9 +288,10 @@ function App() {
 
       <div className="chat-container">
         <ChatHistory
-          chatHistory={selectedChat.log}
+          chat={selectedChat}
           onMessageEdit={handleEditMessage}
-          onMessageDelete={handleDeleteMessage} />
+          onMessageDelete={handleDeleteMessage}
+          onSetRole={handleEditRole} />
 
         <ChatInput
           message={message}
