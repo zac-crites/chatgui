@@ -190,9 +190,15 @@ function App() {
     <div className="App">
       <div>
         <div className="chat-list">
-          <div className="new-chat-button" onClick={handleNewChat}>
-            + New Chat
+          <div className="new-chat-from-template">
+            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value])}>
+              <option value="">New Chat</option>
+              {templates.map((template: any, index: any) => (
+                <option key={index} value={index}>{template.name}</option>
+              ))}
+            </select>
           </div>
+
           {chats.map((chat: any) => (
             <div key={chat.id} className={`chat-item ${chat.id === selectedChatId ? 'active' : ''} ${chat.id === transientChatId ? 'transient' : ''}`}>
               <div
@@ -217,24 +223,15 @@ function App() {
                 )}
               </div>
               <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
-                ✖️
+                X
               </div>
             </div>
           ))}
-          
 
           <div className="new-chat-from-template">
             <button onClick={handleShowModal}> TEST </button>
           </div>
 
-          <div className="new-chat-from-template">
-            <select value={templateValue} onChange={(e) => handleNewChatFromTemplate(templates[e.target.value])}>
-              <option value="">New Chat from Template</option>
-              {templates.map((template: any, index: any) => (
-                <option key={index} value={index}>{template.name}</option>
-              ))}
-            </select>
-          </div>
 
           <div className="new-chat-from-template">
             <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[e.target.value])}>
@@ -246,7 +243,7 @@ function App() {
           </div>
 
           <ItemChooser 
-            title="Request History"
+            title="Response History"
             items={history}
             onSelect={(e:Utils.Chat) => handleClickHistory(e.id)}
             isOpen={showModal}
