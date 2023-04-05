@@ -34,7 +34,6 @@ function ChatHistory({ chat, onMessageEdit, onMessageDelete, onSetRole }) {
     {
       chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
     }
-
     previousChatRef.current = chat;
   }, [chat]);
 
@@ -46,9 +45,9 @@ function ChatHistory({ chat, onMessageEdit, onMessageDelete, onSetRole }) {
           <div className="message-role">
             { roleList.find( r => r === message.role ) ? (
               <select value={message.role} onChange={(e) => onSetRole(message.id, e.target.value)}>
-                <option>user</option>  
-                <option>assistant</option>  
-                <option>system</option>  
+                {roleList.map( (role, idx) => (
+                  <option key={idx}>{role}</option>
+                ))}
               </select>  
             ) : ( 
               <div>

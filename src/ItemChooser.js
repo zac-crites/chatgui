@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
 import Modal from './Modal';
 
 function ItemChooser({ title, items, onSelect, isOpen, onClose, getLabel, getDetail }) {
 
   const handleSelectItem = (item) => {
-    console.log(item);
     onSelect(item);
     onClose();
   };
@@ -17,7 +15,11 @@ function ItemChooser({ title, items, onSelect, isOpen, onClose, getLabel, getDet
     <Modal title={title} isOpen={isOpen} onClose={handleCancel}>
       <div className="content scrollbar">
         {items.map((item,index) => (
-          <div key={index} className="modal-list-item" onClick={() => handleSelectItem(item)}>
+          <div 
+            key={index}
+            className="modal-list-item" 
+            onClick={() => handleSelectItem(item)}
+            title={getDetail(item)}>
               <div className='header'>{getLabel(item)}</div>
               <div className='content'>{getDetail(item)}</div>
           </div>

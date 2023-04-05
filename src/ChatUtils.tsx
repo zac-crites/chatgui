@@ -1,63 +1,55 @@
-import { v4 as uuidv4 } from 'uuid';
+import { Chat, Message } from './Model'
 
-export class Message {
-    readonly id : string;
-    readonly role : string;
-    readonly content : string;
-    constructor(role:string, content:string)
-    {
-        this.id = uuidv4().toString();
-        this.role = role;
-        this.content = content;
+export const fold = <T extends unknown, S extends unknown>(reducer: (state: S, element: T) => S, init: S, xs: T[]) => {
+    let acc = init;
+    for (const x of xs) {
+        acc = reducer(acc, x);
     }
-}
-
-export class Chat {
-    readonly id : string;
-    readonly name : string;
-    readonly log : Array<Message>;
-    public constructor(name:string = "", log:Array<Message> = [])
-    {
-        this.id = uuidv4().toString();
-        this.name = name ?? "";
-        this.log = log ?? [];
-    }
-}
-
-export const chatWithPrompt = (title:string, prompt:string) => 
-    new Chat( title, [new Message("system", prompt)] );
-
-export const addNewChat = (chats:Array<Chat>, title:string, prompt:string) => [...chats, chatWithPrompt(title, prompt)];
-
-export const loadMemory = (chats:Array<Chat>, id:string, key:string) => {
-    const mem = localStorage.getItem("memory-" + key.toLowerCase());
-    return pushMessage(chats, id, new Message("system", "`" + key + ":`\n" + mem));
+    return acc;
 };
 
-export const doRoll = (chats:Array<Chat>, id:string, roll = 20) => {
-    const msg = "`Random number 1-" + roll + ": `\n" + (1 + Math.floor(Math.random() * roll))
-    return pushMessage(chats, id, new Message("system", msg));
+export const pairwise = <T extends unknown>(arr: T[]) => {
+    const s = arr.slice(1)
+    return s.map((value, index) => [arr[index], s])
 }
 
-export const checkForCommands = (chats:Chat[], id:string, message:Message) => {
+export const chatWithPrompt = (title: string, prompt: string) =>
+    new Chat(title, [new Message("system", prompt)]);
+
+export const addNewChat = (chats: Array<Chat>, title: string, prompt: string) => [...chats, chatWithPrompt(title, prompt)];
+
+export const loadMemory = (chats: Array<Chat>, chat:Chat, key: string) => {
+    const mem = localStorage.getItem("memory-" + key.toLowerCase());
+    return pushMessage(chats, chat, new Message("system", "`" + key + ":`\n" + mem));
+};
+
+export const doRoll = (chats: Array<Chat>, chat: Chat, roll = 20) => {
+    const msg = "`Random number 1-" + roll + ": `\n" + (1 + Math.floor(Math.random() * roll))
+    return pushMessage(chats, chat, new Message("system", msg));
+}
+
+export const checkForCommands = (chats: Chat[], chat: Chat, message: Message) => {
     if (message.role === "system")
         return chats;
 
     const cmd = message.content.split(" ");
     if (cmd.length > 1 && cmd[0] === "/load") {
         chats = cmd.slice(1).reduce(
-            (chats:any, arg:any) => loadMemory(chats, id, arg),
+            (chats: any, arg: any) => loadMemory(chats, chat, arg),
             chats);
     }
     else if (cmd.length > 0 && cmd[0] === "/roll") {
-        chats = doRoll(chats, id, parseInt( cmd[1] ) );
+        chats = doRoll(chats, chat, cmd[1] ? parseInt(cmd[1]) : 20 );
+    }
+    else if (cmd.length > 0 && cmd[0] === "/merge") {
+        chats = mergeByRole( chats, chat );
     }
 
     const regex = /```\s*COMMAND:\s*(\S+)\s*(\nARG:(.*?))```/gs;
     let match;
     while ((match = regex.exec(message.content))) {
         const command = match[1];
-        const args : Array<any> = [];
+        const args: Array<any> = [];
 
         // Match all the argument strings and add them to the args array
         const argRegex = /ARG:(.*?)(?=\nARG:|$)/gs;
@@ -79,40 +71,51 @@ export const checkForCommands = (chats:Chat[], id:string, message:Message) => {
             localStorage.setItem("memory-" + args[0].toLowerCase(), args[1]);
         }
         else if (command === "LOAD" && args.length === 1) {
-            chats = loadMemory(chats, id, args[0]);
+            chats = loadMemory(chats, chat, args[0]);
         }
         else if (command === "ROLL" && args.length === 1) {
-            chats = doRoll(chats, id, args[0])
+            chats = doRoll(chats, chat, args[0])
         }
     }
     return chats;
 };
-export const updateChat = (chats:Chat[], id:string, fn:any) => chats.map((c:Chat) => c.id === id ? fn(c) : c);
+export const updateChat = (chats: Chat[], id: string, fn: any) => chats.map((c: Chat) => c.id === id ? fn(c) : c);
 
-export const replaceChat = (chats:Chat[], id:string, chat:Chat) => updateChat(chats, id, (c:any) => chat);
+export const replaceChat = (chats: Chat[], chat: Chat) => updateChat(chats, chat.id, (c: any) => chat);
 
-export const replaceHistory = (chats:Chat[], id:string, log:Message[]) => updateChat(chats, id, (c:Chat) => ({ ...c, log: log } as Chat));
+export const replaceHistory = (chats: Chat[], id: string, log: Message[]) => updateChat(chats, id, (c: Chat) => ({ ...c, log: log } as Chat));
 
-export const getChat = (chats:Chat[], id:string) => chats.find((c) => c.id === id) || new Chat( "", [] );
+export const getChat = (chats: Chat[], id: string) => chats.find((c) => c.id === id) || new Chat("", []);
 
-export const previousChat = (chats:Chat[], id:string) => {
-    const index = chats.findIndex( c => c.id ) - 1;
-    return chats.length > 0 ? chats[Math.max(0,index)] : new Chat();
+export const mergeByRole = (chats: Chat[], chat: Chat) => {
+    let newLog = fold((result, m) => {
+        const last = result.pop();
+        if (last?.role === m.role)
+        {
+            result.push( new Message(m.role, last.content + "\n\n" + m.content ) );
+        } 
+        else
+        {
+            result.push( ...(last ? [ last, m ] : [ m ] ));
+        }
+        return result;
+    }, [] as Message[], chat.log)
+    return replaceHistory(chats, chat.id, newLog);
 };
 
-export const pushMessage = (chats:Chat[], id:string, message:Message) => {
+export const pushMessage = (chats: Chat[], chat: Chat, message: Message) => {
     console.log(message);
-    chats = replaceHistory(chats, id, [...getChat(chats, id).log, message]);
-    chats = checkForCommands(chats, id, message);
+    chats = replaceHistory(chats, chat.id, [...chat.log, message]);
+    chats = checkForCommands(chats, chat, message);
     return chats;
 };
 
-export const appendTemplate = (chats:any, id:any, template:any) => {
+export const appendTemplate = (chats: any, id: any, template: any) => {
     return replaceHistory(chats, id, [
         ...getChat(chats, id).log,
-        ...(template.history ?? template.log).map((m:any) => new Message(m.role, m.content))
+        ...(template.history ?? template.log).map((m: any) => new Message(m.role, m.content))
     ]);
 };
 
-export const newFromTemplate = (chats:any, template:any) =>
-    [...chats, new Chat(template.name, (template.history ?? template.log).map((m:any) => new Message(m.role, m.content)))];
+export const newFromTemplate = (chats: any, template: any) =>
+    [...chats, new Chat(template.name, (template.history ?? template.log).map((m: any) => new Message(m.role, m.content)))];
