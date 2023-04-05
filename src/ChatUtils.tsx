@@ -104,7 +104,6 @@ export const mergeByRole = (chats: Chat[], chat: Chat) => {
 };
 
 export const pushMessage = (chats: Chat[], chat: Chat, message: Message) => {
-    console.log(message);
     chats = replaceHistory(chats, chat.id, [...chat.log, message]);
     chats = checkForCommands(chats, chat, message);
     return chats;

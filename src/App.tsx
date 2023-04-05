@@ -9,6 +9,7 @@ import SettingsPanel from './SettingsPanel';
 import ChatInput from './ChatInput';
 import ItemChooser from './ItemChooser';
 import ChatList from './ChatList';
+import RequestHelper from './RequestHelper';
 
 const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
 const openai = new OpenAIApi(config);
@@ -16,13 +17,8 @@ const openai = new OpenAIApi(config);
 function App() {
 
   const [message, setMessage] = useState('');
-  const [numTokens, setNumTokens] = useState(1024);
-  const [temperature, setTemperature] = useState(0.7);
-  const [topP, setTopP] = useState(1);
-  const [frequencyPenalty, setFrequencyPenalty] = useState(0);
-  const [presencePenalty, setPresencePenalty] = useState(0);
   const [transientChatId, setTransientChatId] = useState("");
-
+  const [requestSettings, setRequestSettings] = useState(new RequestHelper().requestSettings);
   const [modalTitle, setModalTitle] = useState<string | null>(null);
   const [modalListChats, setModalListChats] = useState<Chat[] | null>(null);
 
@@ -63,30 +59,17 @@ function App() {
     setMessage("");
 
     try {
-      const response = await openai.createChatCompletion({
-        model: "gpt-3.5-turbo",
-        max_tokens: numTokens,
-        temperature: temperature,
-        top_p: topP,
-        frequency_penalty: frequencyPenalty,
-        presence_penalty: presencePenalty,
-        messages: (Utils.getChat(newChats, selectedChatId).log).map((msg: any) => ({ role: msg.role, content: msg.content }))
-      });
-      console.log(response.data)
-      const choice = response.data.choices[0] as any;
-      if (!choice) return;
-      const final = Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message(
-        choice.message.role,
-        choice.message.content,
-      ));
-      setChats(final);
-      const finalChat = Utils.getChat(final, selectedChatId)
+      const requestMessages = Utils.getChat(newChats, selectedChatId).log;
+      const response = await new RequestHelper( requestSettings ).getCompletion( requestMessages );
+      const finalChats = Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), response );
+      const finalChat = Utils.getChat(finalChats, selectedChatId)
+      setChats(finalChats);
       setHistory([new Chat(finalChat.name, finalChat.log), ...history].slice(0, 50));
       setTransientChatId("");
     }
     catch (error) {
       console.log(error);
-      setChats(Utils.pushMessage(newChats, selectedChat, new Message("INFO", "ERROR")));
+      setChats(Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message("INFO", "ERROR")));
     }
   };
 
@@ -203,16 +186,8 @@ function App() {
       </div>
 
       <SettingsPanel
-        numTokens={numTokens}
-        setNumTokens={setNumTokens}
-        temperature={temperature}
-        setTemperature={setTemperature}
-        topP={topP}
-        setTopP={setTopP}
-        frequencyPenalty={frequencyPenalty}
-        setFrequencyPenalty={setFrequencyPenalty}
-        presencePenalty={presencePenalty}
-        setPresencePenalty={setPresencePenalty}
+        requestSettings={requestSettings}
+        setRequestSettings={setRequestSettings}
         handleSaveTemplate={handleSaveTemplate}
         handleReset={handleReset}
       />
