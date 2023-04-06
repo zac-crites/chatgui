@@ -109,12 +109,12 @@ export const pushMessage = (chats: Chat[], chat: Chat, message: Message) => {
     return chats;
 };
 
-export const appendTemplate = (chats: any, id: any, template: any) => {
+export const appendTemplate = (chats: Chat[], id: string, template: Chat) => {
     return replaceHistory(chats, id, [
         ...getChat(chats, id).log,
-        ...(template.history ?? template.log).map((m: any) => new Message(m.role, m.content))
+        ...template.log.map((m: any) => new Message(m.role, m.content))
     ]);
 };
 
-export const newFromTemplate = (chats: any, template: any) =>
-    [...chats, new Chat(template.name, (template.history ?? template.log).map((m: any) => new Message(m.role, m.content)))];
+export const newFromTemplate = (chats: Chat[], template: Chat) =>
+    [...chats, new Chat(template.name, template.log.map((m: any) => new Message(m.role, m.content)))];

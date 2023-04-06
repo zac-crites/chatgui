@@ -14,6 +14,8 @@ const defaultSettings : CreateChatCompletionRequest = {
     messages: [] 
 };
 
+const vaildRoles = new Set(["user", "assistant", "system"]);
+
 class RequestHelper {
 
     requestSettings : CreateChatCompletionRequest;
@@ -25,7 +27,7 @@ class RequestHelper {
     async getCompletion( messages:Message[] ) {
         const settings = { 
             ...this.requestSettings, 
-            messages: messages.map((m:any) => ({ role: m.role, content: m.content })) };
+            messages: messages.filter( m => vaildRoles.has(m.role)).map((m:any) => ({ role: m.role, content: m.content })) };
 
         const response = await openai.createChatCompletion( settings );
 
@@ -33,7 +35,7 @@ class RequestHelper {
         const choice = response.data.choices[0];
         return (choice)
             ? new Message( choice?.message?.role ?? "", choice?.message?.content ?? "" )
-            : new Message( "INFO", "Empty response");
+            : new Message( "info", "Empty response");
     }
 };
 

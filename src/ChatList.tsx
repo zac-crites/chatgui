@@ -22,9 +22,16 @@ const ChatList = ({
     setTransientChatId,
     templates } : ChatListProps ) => {
 
+    const [editingName, setEditingName] = useState(false);
     const [newChatName, setNewChatName] = useState("");
     const [templateValue, setTemplateValue] = useState("");
 
+    const textBoxRef = React.useRef(null);
+
+    React.useEffect(() => {
+      (textBoxRef?.current as any)?.focus();
+    }, [editingName]);
+  
     const handleNewFromTemplate = (template: Chat) => {
         if (!template) return;
         const newChats = Utils.newFromTemplate(chats, template);
@@ -41,7 +48,7 @@ const ChatList = ({
         }
         if ( chatId !== selectedChatId )
         {
-            setNewChatName("");
+            setEditingName(false);
         }
         setSelectedChatId(chatId);
     };
@@ -53,12 +60,16 @@ const ChatList = ({
         setSelectedChatId(newChats.length > 0 ? newChats[Math.min(newChats.length - 1, idx)].id : "")
     };
 
-    const handleChatNameEdit = (chatId: any, newName: any) => {
+    const commitChatName = (chatId: any, newName: any) => {
         setChats(Utils.updateChat(chats, chatId, (c: any) => ({ ...c, name: newName })));
-        setNewChatName("");
+        setEditingName(false);
     };
 
-
+    const startChatNameEdit = (name:string) => {
+        setEditingName(true);
+        setNewChatName(name)
+    };
+  
     return (
         <div className="chat-list scrollbar">
             <div className="new-chat-from-template">
@@ -75,21 +86,25 @@ const ChatList = ({
                     <div
                         className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
                         onClick={() => handleChatSelect(chat.id)}
-                        onDoubleClick={() => setNewChatName(chat.name)} >
-                        {newChatName !== "" && chat.id === selectedChatId ? (
+                        onDoubleClick={() => startChatNameEdit(chat.name)} >
+                        {editingName && chat.id === selectedChatId ? (
                             <input
+                                ref={textBoxRef}
                                 type="text"
                                 value={newChatName}
                                 onChange={(e) => setNewChatName(e.target.value)}
-                                onBlur={() => handleChatNameEdit(chat.id, newChatName)}
+                                onBlur={() => commitChatName(chat.id, newChatName)}
+                                onFocus={(e) => e.target.select()}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
-                                        handleChatNameEdit(chat.id, newChatName);
+                                        commitChatName(chat.id, newChatName);
+                                    } else if ( e.key === "Escape" ){
+                                        setEditingName(false);
                                     }
                                 }}
                             />
                         ) : (
-                            "" + chat.name
+                            chat.name
                         )}
                     </div>
                     <div className="delete-chat-button" onClick={() => handleDeleteChat(chat.id)}>
