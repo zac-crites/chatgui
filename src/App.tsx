@@ -1,5 +1,4 @@
 import './App.css';
-import { Configuration, OpenAIApi } from 'openai';
 import { useState, useEffect } from 'react';
 
 import { Chat, Message } from './Model'
@@ -10,9 +9,7 @@ import ChatInput from './ChatInput';
 import ItemChooser from './ItemChooser';
 import ChatList from './ChatList';
 import RequestHelper from './RequestHelper';
-
-const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
-const openai = new OpenAIApi(config);
+import UtilityPanel from './UtilityPanel';
 
 function App() {
 
@@ -60,16 +57,16 @@ function App() {
 
     try {
       const requestMessages = Utils.getChat(newChats, selectedChatId).log;
-      const response = await new RequestHelper( requestSettings ).getCompletion( requestMessages );
-      const finalChats = Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), response );
+      const response = await new RequestHelper(requestSettings).getCompletion(requestMessages);
+      const finalChats = Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), response);
       const finalChat = Utils.getChat(finalChats, selectedChatId)
       setChats(finalChats);
-      setHistory([new Chat(finalChat.name, finalChat.log), ...history].slice(0, 50));
+      setHistory([new Chat(finalChat.name, finalChat.log), ...history].slice(0, 100));
       setTransientChatId("");
     }
-    catch (error) {
+    catch (error: any) {
       console.log(error);
-      setChats(Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message("INFO", "ERROR")));
+      setChats(Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message("INFO", "ERROR:\n" + error.message)));
     }
   };
 
@@ -78,7 +75,7 @@ function App() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const newChats = Utils.pushMessage(chats, selectedChat, new Message("user", "```\n" + (e.target ?? {}).result + "```"));
+        const newChats = Utils.pushMessage(chats, selectedChat, new Message("user", "```\n" + (e.target ?? {}).result + "\n```"));
         setChats(newChats);
       };
       reader.readAsText(file);
@@ -96,7 +93,7 @@ function App() {
   const handleDeleteMessage = (messageId: any) => {
     setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.log.filter((message: any) => message.id !== messageId)));
   };
-  
+
   const handleEditRole = (messageId: string, newRole: string) => {
     setChats(
       Utils.replaceHistory(
@@ -114,8 +111,21 @@ function App() {
     setTemplates([...newTemplates, newTemplate]);
   };
 
+  const handleAppendTemplate = (template: Chat) => setChats(Utils.appendTemplate(chats, selectedChatId, template));
+
+  const handleCloneChat = () =>
+    setChats([...chats, new Chat(selectedChat.name, selectedChat.log)]);
+
   const handleReset = () => {
     setChats(Utils.replaceHistory(chats, selectedChatId, selectedChat.log.length > 0 ? [selectedChat.log[0]] : []));
+  };
+
+  const handleArchiveChat = () => {
+      const idx = chats.findIndex(c => c.id === selectedChatId)
+      const newChats = chats.filter((c: any) => c.id !== selectedChatId);
+      setChats(newChats);
+      setArchive(selectedChat ? [selectedChat, ...archive] : archive);
+      setSelectedChatId(newChats.length > 0 ? newChats[Math.min(newChats.length - 1, idx)].id : defaultChat.id)
   };
 
   const handleShowHistory = () => {
@@ -132,9 +142,9 @@ function App() {
     setModalTitle(null);
     setModalListChats(null);
   }
-  
+
   const handleClickChatListItem = (chatId: string) => {
-    if ( modalListChats === null) return;
+    if (modalListChats === null) return;
 
     const chat = modalListChats.find(chat => chat.id === chatId);
     const newChat = new Chat(chat?.name ?? "", chat?.log ?? []);
@@ -145,18 +155,27 @@ function App() {
 
   return (
     <div className="App">
-      <div>
-      <ChatList 
-            chats={chats}
-            setChats={setChats}
-            selectedChatId={selectedChatId}
-            setSelectedChatId={setSelectedChatId}
-            transientChatId={transientChatId}
-            setTransientChatId={setTransientChatId}
-            templates={templates}
-            handleShowHistory={handleShowHistory}
-            handleShowArchive={handleShowArchive} 
-            />
+      <div style={{display:"flex", flexDirection:"column"}}>
+        <ChatList
+          chats={chats}
+          setChats={setChats}
+          selectedChatId={selectedChatId}
+          setSelectedChatId={setSelectedChatId}
+          transientChatId={transientChatId}
+          setTransientChatId={setTransientChatId}
+          templates={templates}
+        />
+
+        <UtilityPanel
+          templates={templates}
+          onAppendTemplate={handleAppendTemplate}
+          onShowHistory={handleShowHistory}
+          onShowArchive={handleShowArchive}
+          onSaveTemplate={handleSaveTemplate}
+          onCloneChat={handleCloneChat}
+          onClearChat={handleReset} 
+          onArchiveChat={handleArchiveChat}
+          />
 
         <ItemChooser
           title={modalTitle ?? "Select Chat"}
@@ -166,7 +185,7 @@ function App() {
           onClose={handleCloseModal}
           getLabel={(chat: Chat) => chat.name}
           getDetail={(chat: Chat) => chat.log[chat.log.length - 1].content}
-          />
+        />
       </div>
 
       <div className="chat-container">
@@ -188,8 +207,6 @@ function App() {
       <SettingsPanel
         requestSettings={requestSettings}
         setRequestSettings={setRequestSettings}
-        handleSaveTemplate={handleSaveTemplate}
-        handleReset={handleReset}
       />
 
     </div>

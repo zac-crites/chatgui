@@ -1,6 +1,5 @@
 import { Configuration, OpenAIApi, CreateChatCompletionRequest } from 'openai';
-import { Chat, Message } from './Model'
-import * as Utils from './ChatUtils'
+import { Message } from './Model'
 
 const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
 const openai = new OpenAIApi(config);
@@ -31,10 +30,9 @@ class RequestHelper {
         const response = await openai.createChatCompletion( settings );
 
         console.log( response.data );
-
-        const choice = response.data.choices[0] as any;
+        const choice = response.data.choices[0];
         return (choice)
-            ? new Message( choice.message.role, choice.message.content )
+            ? new Message( choice?.message?.role ?? "", choice?.message?.content ?? "" )
             : new Message( "INFO", "Empty response");
     }
 };

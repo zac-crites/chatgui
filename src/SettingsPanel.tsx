@@ -3,15 +3,11 @@ import { CreateChatCompletionRequest } from 'openai';
 type SettingsPanelProps = {
   requestSettings : CreateChatCompletionRequest,
   setRequestSettings : (_:CreateChatCompletionRequest)=>void,
-  handleSaveTemplate : () => void,
-  handleReset: () => void
 }
 
 const SettingsPanel = ({
   requestSettings,
-  setRequestSettings,
-  handleSaveTemplate,
-  handleReset
+  setRequestSettings
 } : SettingsPanelProps ) =>  {
 
   return (
@@ -69,10 +65,6 @@ const SettingsPanel = ({
           onChange={(event) => setRequestSettings({ ...requestSettings, presence_penalty: parseFloat(event.target.value) })}
         />
       </label>
-
-
-      <button onClick={handleSaveTemplate}>Save Template</button>
-      <button onClick={handleReset}>Reset</button>
     </div>
   );
 }

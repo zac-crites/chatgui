@@ -10,9 +10,7 @@ type ChatListProps = {
     setSelectedChatId: (_: string) => void,
     transientChatId: string,
     setTransientChatId: (_: string) => void,
-    templates: Chat[],
-    handleShowHistory:()=>void,
-    handleShowArchive:()=>void 
+    templates: Chat[]
 };
 
 const ChatList = ({
@@ -22,13 +20,10 @@ const ChatList = ({
     setSelectedChatId,
     transientChatId,
     setTransientChatId,
-    templates,
-    handleShowHistory,
-    handleShowArchive } : ChatListProps ) => {
+    templates } : ChatListProps ) => {
 
     const [newChatName, setNewChatName] = useState("");
     const [templateValue, setTemplateValue] = useState("");
-    const [appendTemplateValue, setAppendTemplateValue] = useState("");
 
     const handleNewFromTemplate = (template: Chat) => {
         if (!template) return;
@@ -38,17 +33,15 @@ const ChatList = ({
         setTemplateValue("");
     };
 
-    const handleAppendTemplate = (template: Chat) => {
-        if (!template) return;
-        setChats(Utils.appendTemplate(chats, selectedChatId, template));
-        setAppendTemplateValue("");
-    };
-
     const handleChatSelect = (chatId: string) => {
         if (chatId !== transientChatId) {
             setChats(chats.filter(c => c.id !== transientChatId));
         } else {
             setTransientChatId("");
+        }
+        if ( chatId !== selectedChatId )
+        {
+            setNewChatName("");
         }
         setSelectedChatId(chatId);
     };
@@ -65,17 +58,9 @@ const ChatList = ({
         setNewChatName("");
     };
 
-    // const handleArchiveChat = (chatId: string) => {
-    //     const idx = chats.findIndex(c => c.id === chatId)
-    //     const chat = chats[idx];
-    //     const newChats = chats.filter((c: any) => c.id !== chatId);
-    //     setChats(newChats);
-    //     setArchive(chat ? [chat, ...archive] : archive);
-    //     setSelectedChatId(newChats.length > 0 ? newChats[Math.min(newChats.length - 1, idx)].id : defaultChat.id)
-    // };
 
     return (
-        <div className="chat-list">
+        <div className="chat-list scrollbar">
             <div className="new-chat-from-template">
                 <select value={templateValue} onChange={(e) => handleNewFromTemplate(templates[parseInt(e.target.value)])}>
                     <option value="">New Chat</option>
@@ -90,8 +75,7 @@ const ChatList = ({
                     <div
                         className={`chat-name ${chat.id === selectedChatId ? 'active' : ''}`}
                         onClick={() => handleChatSelect(chat.id)}
-                        onDoubleClick={() => setNewChatName(chat.name)}
-                    >
+                        onDoubleClick={() => setNewChatName(chat.name)} >
                         {newChatName !== "" && chat.id === selectedChatId ? (
                             <input
                                 type="text"
@@ -113,24 +97,6 @@ const ChatList = ({
                     </div>
                 </div>
             ))}
-
-            <div className="new-chat-from-template">
-                <button onClick={handleShowHistory}>⏱️</button>
-                <button onClick={handleShowArchive}>⏱️⏱️</button>
-            </div>
-
-            <div className="new-chat-from-template">
-                <select value={appendTemplateValue} onChange={(e) => handleAppendTemplate(templates[parseInt(e.target.value)])}>
-                    <option value="">Append Template</option>
-                    {templates.map((template: Chat, index: number) => (
-                        <option key={index} value={index}>{template.name}</option>
-                    ))}
-                </select>
-            </div>
-
-            <div className="new-chat-from-template">
-                <button onClick={(e) => { /*handleArchiveChat(selectedChatId)*/ }}>⏱️⏱️</button>
-            </div>
         </div>
     );
 };
