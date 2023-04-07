@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 class Message {
     readonly id: string;
     readonly role: string;
-    readonly content: string;
+    content: string;
     constructor(role: string, content: string) {
         this.id = uuidv4().toString();
         this.role = role;

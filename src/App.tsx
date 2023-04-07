@@ -47,6 +47,35 @@ function App() {
     setMessage("");
   };
 
+  const updateMessage = (update:string) => {
+    console.log(update);
+  };
+
+  
+
+  const handleSubmitStream = async (event: any) => {
+    event.preventDefault();
+
+    const newChats = commitUserMessage(chats);
+
+    let responseMessage = new Message("assistant", "" );
+    setChats(Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage ));
+    setMessage("");
+
+    try {
+      const requestMessages = Utils.getChat(newChats, selectedChatId).log;
+      await new RequestHelper(requestSettings).getCompletionStream(requestMessages, (delta) => {
+        responseMessage = new Message("assistant", responseMessage.content + delta );
+        const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage );
+        setChats(responseChats);
+      });
+    }
+    catch (error: any) {
+      console.log(error);
+      setChats(Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message("INFO", "ERROR:\n" + error.message)));
+    }
+  };
+
   const handleSubmit = async (event: any) => {
     event.preventDefault();
 
@@ -199,7 +228,7 @@ function App() {
           message={message}
           setMessage={setMessage}
           handleCommit={handleCommit}
-          handleSubmit={handleSubmit}
+          handleSubmit={handleSubmitStream}
           handleFileSelect={handleFileSelect}
         />
       </div>

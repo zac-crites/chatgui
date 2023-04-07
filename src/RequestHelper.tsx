@@ -1,5 +1,6 @@
 import { Configuration, OpenAIApi, CreateChatCompletionRequest } from 'openai';
 import { Message } from './Model'
+import { IncomingMessage } from 'http'
 
 const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
 const openai = new OpenAIApi(config);
@@ -22,6 +23,36 @@ class RequestHelper {
 
     constructor(settings = defaultSettings) {
         this.requestSettings = settings;
+    }
+
+    async getCompletionStream( messages:Message[], onResponseUpdated:(_:string)=>void ) {
+
+        const fetchOptions = {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + localStorage.getItem("apiKey"),
+            },
+            method: "POST",
+            body: JSON.stringify({
+                ...this.requestSettings,
+                stream:true,
+                messages: messages.filter( m => vaildRoles.has(m.role)).map((m:any) => ({ role: m.role, content: m.content })) 
+            }),
+        } 
+
+        const response = await fetch("https://api.openai.com/v1/chat/completions", fetchOptions );
+        const reader = response.body?.pipeThrough( new TextDecoderStream()).getReader();
+
+        while( true ) {
+            const chunk = await reader?.read();
+            if (chunk?.done  )
+            {
+                break;
+            }
+            const json = chunk?.value?.slice(6).split("data: ") ?? [];
+            const data = json?.filter( (d) => d !== "[DONE]\n\n")?.map( (d) => JSON.parse(d.trim()).choices[0].delta.content );
+            data?.filter( (d) => d !== undefined ).forEach( (d) => onResponseUpdated(d));
+        }
     }
 
     async getCompletion( messages:Message[] ) {
