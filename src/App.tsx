@@ -27,7 +27,7 @@ function App() {
   const [history, setHistory] = useState<Chat[]>(() => JSON.parse(localStorage.getItem('history') as string) ?? []);
   const [archive, setArchive] = useState<Chat[]>(() => JSON.parse(localStorage.getItem('archive') as string) ?? []);
 
-  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || new Chat("", []);
+  const selectedChat = chats.find((chat) => chat.id === selectedChatId) || defaultChat;
 
   useEffect(() => localStorage.setItem('chats', JSON.stringify(chats)), [chats]);
   useEffect(() => localStorage.setItem('selectedChatId', selectedChatId), [selectedChatId]);

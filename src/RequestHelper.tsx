@@ -29,6 +29,8 @@ class RequestHelper {
             ...this.requestSettings, 
             messages: messages.filter( m => vaildRoles.has(m.role)).map((m:any) => ({ role: m.role, content: m.content })) };
 
+        console.log( settings );
+
         const response = await openai.createChatCompletion( settings );
 
         console.log( response.data );

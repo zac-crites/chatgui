@@ -203,17 +203,17 @@ label {
   margin: 12px;
 }
 
+.settings-panel label {
+  display: flex;
+  flex-direction: column;
+}
+
 input {
   padding: 10px;
-  margin-right: 10px;
-  margin-bottom: 0;
   border: none;
-  border-radius: 5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   font-size: 16px;
   background-color: #2d2d2d;
   color: #fff;
-  width: 150px;
 }
 
 textarea {
