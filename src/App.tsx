@@ -47,13 +47,7 @@ function App() {
     setMessage("");
   };
 
-  const updateMessage = (update:string) => {
-    console.log(update);
-  };
-
-  
-
-  const handleSubmitStream = async (event: any) => {
+  const handleSubmit = async (event: any) => {
     event.preventDefault();
 
     const newChats = commitUserMessage(chats);
@@ -69,27 +63,8 @@ function App() {
         const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage );
         setChats(responseChats);
       });
-    }
-    catch (error: any) {
-      console.log(error);
-      setChats(Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message("INFO", "ERROR:\n" + error.message)));
-    }
-  };
-
-  const handleSubmit = async (event: any) => {
-    event.preventDefault();
-
-    const newChats = commitUserMessage(chats);
-    const newChatWithSpinner = Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), new Message("INFO", "Waiting for assistant..."));
-    setChats(newChatWithSpinner);
-    setMessage("");
-
-    try {
-      const requestMessages = Utils.getChat(newChats, selectedChatId).log;
-      const response = await new RequestHelper(requestSettings).getCompletion(requestMessages);
-      const finalChats = Utils.pushMessage(newChats, Utils.getChat(newChats, selectedChatId), response);
-      const finalChat = Utils.getChat(finalChats, selectedChatId)
-      setChats(finalChats);
+      const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage );
+      const finalChat = Utils.getChat(responseChats, selectedChatId);
       setHistory([new Chat(finalChat.name, finalChat.log), ...history].slice(0, 100));
       setTransientChatId("");
     }
@@ -228,7 +203,7 @@ function App() {
           message={message}
           setMessage={setMessage}
           handleCommit={handleCommit}
-          handleSubmit={handleSubmitStream}
+          handleSubmit={handleSubmit}
           handleFileSelect={handleFileSelect}
         />
       </div>
