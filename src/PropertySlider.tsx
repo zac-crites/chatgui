@@ -20,12 +20,11 @@ const PropertySlider = ({
     onChange,
 }: PropertySliderProps) => {
 
-    const id = "slider" + uuidv4().toString();
-
+    const [id] = useState( "slider" + uuidv4().toString() );
     const [input,setInput] = useState("");
 
     const handleChange = (v:string) => {
-        if ( !v || input === v )
+        if ( v === null || v === undefined || input === v )
             return;
         setInput(v);
         onChange(v);

@@ -1,8 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import SettingsPanel from '../SettingsPanel';
 import { CreateChatCompletionRequest } from 'openai';
-import { act } from 'react-dom/test-utils'
+import SettingsPanel from '../SettingsPanel';
 
 describe('SettingsPanel', () => {
     let mockRequestSettings: CreateChatCompletionRequest;

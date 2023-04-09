@@ -60,10 +60,10 @@ function App() {
       const requestMessages = Utils.getChat(newChats, selectedChatId).log;
       await new RequestHelper(requestSettings).getCompletionStream(requestMessages, (delta) => {
         responseMessage = new Message("assistant", responseMessage.content + delta );
-        const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage );
+        const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage, true );
         setChats(responseChats);
       });
-      const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage );
+      const responseChats = Utils.pushMessage( newChats, Utils.getChat(newChats, selectedChatId), responseMessage);
       const finalChat = Utils.getChat(responseChats, selectedChatId);
       setHistory([new Chat(finalChat.name, finalChat.log), ...history].slice(0, 100));
       setTransientChatId("");

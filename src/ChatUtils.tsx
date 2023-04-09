@@ -58,12 +58,6 @@ export const checkForCommands = (chats: Chat[], chat: Chat, message: Message) =>
             args.push(argMatch[1].trim());
         }
 
-        console.log(`Found command: ${command}`);
-        if (args.length > 0) {
-            console.log(`  Args:`);
-            args.forEach((arg, i) => console.log(`    ${i + 1}: ${arg}`));
-        }
-
         if (command === "NEWCHAT" && args.length === 2) {
             chats = addNewChat(chats, args[0], args[1]);
         }
@@ -101,9 +95,9 @@ export const mergeByRole = (chats: Chat[], chat: Chat) => {
     return replaceHistory(chats, chat.id, newLog);
 };
 
-export const pushMessage = (chats: Chat[], chat: Chat, message: Message) => {
+export const pushMessage = (chats: Chat[], chat: Chat, message: Message, ignoreCommands = false ) => {
     chats = replaceHistory(chats, chat.id, [...chat.log, message]);
-    chats = checkForCommands(chats, chat, message);
+    chats = ignoreCommands ? chats : checkForCommands(chats, chat, message);
     return chats;
 };
 
