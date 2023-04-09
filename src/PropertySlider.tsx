@@ -1,4 +1,6 @@
 import "./PropertySlider.css"
+import { v4 as uuidv4 } from 'uuid';
+import { useState } from 'react';
 
 type PropertySliderProps = {
     label: string
@@ -18,17 +20,29 @@ const PropertySlider = ({
     onChange,
 }: PropertySliderProps) => {
 
+    const id = "slider" + uuidv4().toString();
+
+    const [input,setInput] = useState("");
+
+    const handleChange = (v:string) => {
+        if ( !v || input === v )
+            return;
+        setInput(v);
+        onChange(v);
+    }
+
     return (
         <div className="slider">
             <div>
-                <div>{label}</div>
+                <label htmlFor={id}>{label}</label>
                 <input
+                    id={id}
                     type="number"
                     min={min}
                     max={max}
                     value={value}
                     onFocus={(e)=>e.target.select()}
-                    onChange={(e)=>onChange(e.target.value)}
+                    onChange={(e)=>handleChange(e.target.value)}
                 />
             </div>
             <input
@@ -37,7 +51,7 @@ const PropertySlider = ({
                 max={max}
                 value={value}
                 step={step}
-                onChange={(e)=>onChange(e.target.value)}
+                onChange={(e)=>handleChange(e.target.value)}
             />
         </div>
     )
