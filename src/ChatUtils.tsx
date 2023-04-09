@@ -10,7 +10,7 @@ export const fold = <T extends unknown, S extends unknown>(reducer: (state: S, e
 
 export const pairwise = <T extends unknown>(arr: T[]) => {
     const s = arr.slice(1)
-    return s.map((value, index) => [arr[index], s])
+    return s.map((value, index) => [arr[index], value])
 }
 
 export const chatWithPrompt = (title: string, prompt: string) =>
@@ -80,8 +80,6 @@ export const checkForCommands = (chats: Chat[], chat: Chat, message: Message) =>
     return chats;
 };
 export const updateChat = (chats: Chat[], id: string, fn: any) => chats.map((c: Chat) => c.id === id ? fn(c) : c);
-
-export const replaceChat = (chats: Chat[], chat: Chat) => updateChat(chats, chat.id, (c: any) => chat);
 
 export const replaceHistory = (chats: Chat[], id: string, log: Message[]) => updateChat(chats, id, (c: Chat) => ({ ...c, log: log } as Chat));
 

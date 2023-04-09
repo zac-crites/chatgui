@@ -1,6 +1,5 @@
 import { Configuration, OpenAIApi, CreateChatCompletionRequest } from 'openai';
 import { Message } from './Model'
-import { IncomingMessage } from 'http'
 
 const config = new Configuration({ apiKey: localStorage.getItem("apiKey") ?? "" });
 const openai = new OpenAIApi(config);
